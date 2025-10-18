@@ -7,6 +7,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -16,6 +17,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
+
+
 import java.util.Locale;
 
 @Autonomous(name="AutoNew")
@@ -24,8 +27,8 @@ public class AutoNew extends LinearOpMode
 {
     //#region Variables and Constants
     // Hardware map variables
-    private DcMotor frontleft = null;
-    private DcMotor frontright = null;
+    private DcMotorEx frontleft = null;
+    private DcMotorEx frontright = null;
     private DcMotor rearleft = null;
     private DcMotor rearright = null;
 
@@ -71,6 +74,19 @@ public class AutoNew extends LinearOpMode
 
     double oldTime = 0;
 
+    private double normalizeRadians(double angle) {
+        angle = angle % (2 * Math.PI);
+        if (angle < 0) angle += 2 * Math.PI;
+        return angle;
+    }
+
+    private double angleWrap(double angle) {
+        while (angle <= -Math.PI) angle += 2 * Math.PI;
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        return angle;
+    }
+
+
     @Override public void runOpMode()
     {
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
@@ -83,7 +99,7 @@ public class AutoNew extends LinearOpMode
         the tracking point the Y (strafe) odometry pod is. forward of center is a positive number,
         backwards is a negative number.
          */
-        odo.setOffsets(-84.0, -168.0, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
+        odo.setOffsets(-80, -228, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
 
         /*
         Set the kind of pods used by your robot. If you're using goBILDA odometry pods, select either
@@ -100,7 +116,7 @@ public class AutoNew extends LinearOpMode
         increase when you move the robot forward. And the Y (strafe) pod should increase when
         you move the robot to the left.
          */
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
 
         /*
@@ -111,8 +127,9 @@ public class AutoNew extends LinearOpMode
         This is recommended before you run your autonomous, as a bad initial calibration can cause
         an incorrect starting value for x, y, and heading.
          */
-        //odo.recalibrateIMU();
         odo.resetPosAndIMU();
+        odo.recalibrateIMU();
+
 
         telemetry.addData("Status", "Initialized");
         telemetry.addData("X offset", odo.getXOffset(DistanceUnit.MM));
@@ -126,31 +143,31 @@ public class AutoNew extends LinearOpMode
 
         if (opModeIsActive())
         {
-            odo.resetPosAndIMU();
-
+            odo.update();
 
 
             //*****************************************************************/
             long startTime = System.currentTimeMillis();
 
             //test
-            driveToTarget(0,1,90,0,false);
+//            driveToTarget(0,10,0,1,false);
+//            driveToTarget(10,0,0,1,false);
+//            //rearleft.setPower(1);
+
+
+            frontleft.setPower(-0.4); //upper
+            frontright.setPower(-0.8); //lower
 
 
 
+            //driveToTarget(-100,0,0,5.0,false);
+            //rotateAroundPoint(360, 100, 100, 60);
+            //rotateAroundPoint(-360, 0, 0, 90);
 
             long endTime = System.currentTimeMillis();
             long elapsedTime = endTime - startTime;
             while (opModeIsActive()) {
-                // Log the position to the telemetry
-                currentPose = odo.getPosition();
-                telemetry.addData("X coordinate", currentPose.getX(DistanceUnit.METER));
-                telemetry.addData("Y coordinate", currentPose.getY(DistanceUnit.METER));
-                telemetry.addData("Heading angle", currentPose.getHeading(AngleUnit.DEGREES));
-                telemetry.addData("Last Runtime:", savedTime);
-                telemetry.addData("Segment Execution Time", elapsedTime + " ms");
-                telemetry.update();
-                sleep(50);
+
 
                  /*
             Request an update from the Pinpoint odometry computer. This checks almost all outputs
@@ -216,197 +233,89 @@ public class AutoNew extends LinearOpMode
     }
 
     // Function to DRIVE to target position
-    private void driveToTarget(double targetX, double targetY, double targetHeading, double timeoutSeconds, boolean FASTER) {
+    private void driveToTarget(double targetXcm, double targetYcm, double targetHeadingDeg, double timeoutSeconds, boolean FASTER) {
         runtime.reset();
-        String state = "DRIVE";
 
-        // Determine voltage compensation factor (assuming nominal 14V)
-        double nominalVoltage = 12.5;
-        double currentVoltage = voltageSensor.getVoltage();
-        double voltageScale = nominalVoltage / currentVoltage;
+        // Convert input from cm → mm for Pinpoint
+        double targetXMM = targetXcm * 10.0;
+        double targetYMM = targetYcm * 10.0;
 
-        double adjusted_kS_forward = kS_forward * voltageScale;
-        double adjusted_kS_strafe  = kS_strafe * voltageScale;
-        double adjusted_kS_turn    = kS_turn * voltageScale;
+        // Convert target heading to radians
+        double targetHeadingRad = Math.toRadians(targetHeadingDeg);
 
+        // Slowdown parameters
+        double slowdownStartCM = 10.0; // start slowing down inside 10cm
+        double minSpeedFactor = 0.25;  // never go below 25% of base speed
+        double maxTransPower = FASTER ? 0.6 : 0.4; // max translation power
+        double maxRotPower   = 0.5;                 // max rotation power
 
-        while (opModeIsActive() && (runtime.seconds() < timeoutSeconds)) {
+        while (opModeIsActive() && runtime.seconds() < timeoutSeconds) {
+            odo.update();
 
-            // ---------------------
-            // 1) Read current pose
-            // ---------------------
-            currentPose = odo.getPosition();
-            double currentX = currentPose.getX(DistanceUnit.METER);    // global X
-            double currentY = currentPose.getY(DistanceUnit.METER);    // global Y
-            double currentH = currentPose.getHeading(AngleUnit.DEGREES);    // global heading in degrees
+            // Current pose
+            Pose2D pose = odo.getPosition();
+            double currentX = pose.getX(DistanceUnit.MM);
+            double currentY = pose.getY(DistanceUnit.MM);
+            double currentH = pose.getHeading(AngleUnit.RADIANS);
 
-            // ---------------------------
-            // 2) Calculate global errors
-            // ---------------------------
-            double errorX_global = targetX - currentX;
-            double errorY_global = targetY - currentY;
+            // Compute errors
+            double errorX = targetXMM - currentX;
+            double errorY = targetYMM - currentY;
+            double errorH = angleWrap(targetHeadingRad - currentH);
 
-            // distance to target in meters
-            double distanceToTarget = Math.sqrt(errorX_global * errorX_global + errorY_global * errorY_global);
+            // Distance to target
+            double distanceMM = Math.hypot(errorX, errorY);
 
-            // heading error (in degrees)
-            double errorH_global = targetHeading - normalizeAngle0To360(targetHeading, currentH);
-            if (Math.abs(errorH_global) > 180) {
-                errorH_global = errorH_global - Math.signum(errorH_global) * 360;
-            }
-
-            // -------------------------
-            // 3) Check if we are done?
-            // -------------------------
-            boolean atDistance = ((Math.round(distanceToTarget * 1000.0) / 1000.0) <= DISTANCE_TOLERANCE_M);
-            boolean atHeading = ((Math.round(Math.abs(errorH_global) * 10.0) / 10.0) <= HEADING_TOLERANCE_DEG);
-            if (atDistance && atHeading) {
-                // We have reached target within tolerances
+            // Stop if within tolerances
+            if (distanceMM < 5.0 && Math.abs(Math.toDegrees(errorH)) < 1.0) {
                 break;
             }
 
-            // --------------------------------------------------------
-            // 4) Transform global XY errors into robot-relative frame
-            // --------------------------------------------------------
-            double headingRadians = Math.toRadians(currentH);
-            double errorX_local =  (errorX_global * Math.cos(headingRadians)) + (errorY_global * Math.sin(headingRadians));
-            double errorY_local = (-errorX_global * Math.sin(headingRadians)) + (errorY_global * Math.cos(headingRadians));
-
-            // -------------------------------------
-            // 5) Determine bang-bang "power" levels
-            // -------------------------------------
-
-            // --- Translation (X/Y) ---
-            // We'll treat (errorX_local, errorY_local) as a vector.
-            // Then choose either FAST_POWER_TRANSLATION or a "fine" power
-            // (which at least overcomes friction).
-
-            // 5a) Are we far away?
-            boolean inFineAdjustTrans = (distanceToTarget <= DISTANCE_FINEADJUST_M) && !atDistance;
-
-            if (FASTER){
-                inFineAdjustTrans = false;
+            // --- Slow down near target ---
+            double slowFactor = 1.0;
+            if (distanceMM < slowdownStartCM * 10.0) { // convert cm → mm
+                slowFactor = minSpeedFactor + (1.0 - minSpeedFactor) * (distanceMM / (slowdownStartCM * 10.0));
             }
 
-            double translationPower;
-            if (!inFineAdjustTrans) {
-                // Far from target -> fast
-                translationPower = FAST_POWER_TRANSLATION;
-            } else {
-                // Added code to prioritize driving fine adjust over turning fine adjust (one or the other)
-                if (state.equals("DRIVE")) {
-                    // Fine adjust -> pick a single min power that can move
-                    // Angle from the "forward" axis
-                    double angleFromForward = Math.atan2(errorX_local, errorY_local);
+            // Transform global error into robot-relative frame
+            double cosH = Math.cos(currentH);
+            double sinH = Math.sin(currentH);
+            double errorXRobot =  cosH * errorX + sinH * errorY;
+            double errorYRobot = -sinH * errorX + cosH * errorY;
 
-                    // cos and sin of that angle
-                    double c = Math.cos(angleFromForward);
-                    double s = Math.sin(angleFromForward);
+            // Proportional control constants
+            double kPTrans = 0.02 * slowFactor;  // translation
+            double kPRot   = 0.05 * slowFactor;  // rotation
 
-                    // Interpolated friction offset, this is used to find a happy inbetween power value when driving and strafing slowly
-                    translationPower = (adjusted_kS_forward * (c*c)) + (adjusted_kS_strafe * (s*s));
-                } else {
-                    translationPower = 0.0;
-                }
-            }
+            // Compute robot-relative powers
+            double powerX = Range.clip(errorXRobot * kPTrans, -maxTransPower, maxTransPower);
+            double powerY = Range.clip(errorYRobot * kPTrans, -maxTransPower, maxTransPower);
+            double powerH = Range.clip(errorH * kPRot, -maxRotPower, maxRotPower);
 
-            // Compute direction (angle) of local XY error
-            double translationAngle = Math.atan2(errorY_local, errorX_local);
-            double magnitudeLocal   = Math.sqrt(errorX_local*errorX_local + errorY_local*errorY_local);
+            // --- Mecanum mixing ---
+            double fl = powerY + powerX - powerH;
+            double fr = powerY - powerX + powerH;
+            double rl = powerY - powerX - powerH;
+            double rr = powerY + powerX + powerH;
 
-            // If we're below distance tolerance, zero out
-            if (atDistance) {
-                translationPower = 0.0;  // or leave it to minimal if you want
-                state = "TURN";
-            }
+            // Normalize powers
+            double maxPower = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
+                    Math.max(Math.abs(rl), Math.abs(rr))));
+            fl /= maxPower; fr /= maxPower; rl /= maxPower; rr /= maxPower;
 
-            // Then final local XY power (in local coords)
-            double powerX_local = translationPower * Math.cos(translationAngle);
-            double powerY_local = translationPower * Math.sin(translationAngle);
+            // Send to motors
+            frontleft.setPower(fl);
+            frontright.setPower(fr);
+            rearleft.setPower(rl);
+            rearright.setPower(rr);
 
-            // --- Rotation (heading) ---
-            boolean inFineAdjustHead = (Math.abs(errorH_global) <= HEADING_FINEADJUST_DEG) && !atHeading;
-
-            double powerH_local;
-            if (!inFineAdjustHead) {
-                // Big heading error -> rotate fast
-                powerH_local = FAST_POWER_ROTATION * Math.signum(errorH_global);
-            } else {
-                // Added code to prioritize driving fine adjust over turning fine adjust (one or the other)
-                if (state.equals("TURN")) {
-                    // Fine heading adjust
-                    powerH_local = adjusted_kS_turn * Math.signum(errorH_global);
-                } else {
-                    powerH_local = 0.0;
-                }
-            }
-
-
-            // If we're within heading tolerance, zero out rotation
-            if (atHeading) {
-                powerH_local = 0.0;
-
-                // Already adjusted to target distance before, now that turn target is reached, stop the loop
-                if (state.equals("TURN")) {
-                    break;
-                }
-            }
-
-            // --------------------------------------------------------
-            // 6) Mecanum mixing: combine local X, Y, and heading power
-            // --------------------------------------------------------
-            double frontLeftPower  = powerY_local + powerX_local - powerH_local;
-            double frontRightPower = powerY_local - powerX_local + powerH_local;
-            double rearLeftPower   = powerY_local - powerX_local - powerH_local;
-            double rearRightPower  = powerY_local + powerX_local + powerH_local;
-
-            // --------------------------------
-            // 7) Normalize so we don't exceed 1
-            // --------------------------------
-            double maxPower = Math.max(
-                    Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)),
-                    Math.max(Math.abs(rearLeftPower),  Math.abs(rearRightPower))
-            );
-            if (maxPower > 1.0) {
-                frontLeftPower  /= maxPower;
-                frontRightPower /= maxPower;
-                rearLeftPower   /= maxPower;
-                rearRightPower  /= maxPower;
-            }
-
-            // -----------------------------------------------
-            // 8) Apply voltage compensation before sending powers
-            // -----------------------------------------------
-            frontleft.setPower(Range.clip(frontLeftPower * voltageScale, -1.0, 1.0));
-            frontright.setPower(Range.clip(frontRightPower * voltageScale, -1.0, 1.0));
-            rearleft.setPower(Range.clip(rearLeftPower * voltageScale, -1.0, 1.0));
-            rearright.setPower(Range.clip(rearRightPower * voltageScale, -1.0, 1.0));
-
-            // Log data
-            df1.set(targetX);
-            df2.set(targetY);
-            df3.set(targetHeading);
-            df4.set(currentX);
-            df5.set(currentY);
-            df6.set(currentH);
-            df7.set(errorX_global);
-            df8.set(errorY_global);
-            df9.set(distanceToTarget);
-            df10.set(errorH_global);
-            df11.set(errorX_local);
-            df12.set(errorY_local);
-            df13.set(powerX_local);
-            df14.set(powerY_local);
-            df15.set(powerH_local);
-            df16.set(frontLeftPower);
-            df17.set(frontRightPower);
-            df18.set(rearLeftPower);
-            df19.set(rearRightPower);
-            df20.set(voltageSensor.getVoltage());
-            df21.set(runtime.seconds());
-            df22.set(inFineAdjustTrans ? 1 : 0);
-            df23.set(inFineAdjustHead ? 1 : 0);
-            datalog.writeLine();
+            // Telemetry for debugging
+            telemetry.addData("X error (cm)", errorX / 10.0);
+            telemetry.addData("Y error (cm)", errorY / 10.0);
+            telemetry.addData("Heading error (deg)", Math.toDegrees(errorH));
+            telemetry.addData("FL", fl); telemetry.addData("FR", fr);
+            telemetry.addData("RL", rl); telemetry.addData("RR", rr);
+            telemetry.update();
 
             idle();
         }
@@ -416,10 +325,9 @@ public class AutoNew extends LinearOpMode
         frontright.setPower(0);
         rearleft.setPower(0);
         rearright.setPower(0);
-
-        // Save the runtime of the operation
-        savedTime = runtime.seconds();
     }
+
+
 
     // Fixes the laser odometry sensor angle from -180 to 180 to 0 to 360.
     // Sensor goes to +179.9 and a degree more turns into -179.9!, making it impossible to actually hit 180 degrees or even perform a 270 rotation.
@@ -475,8 +383,8 @@ public class AutoNew extends LinearOpMode
                 .build();
 
         // Initialize the hardware variables and set the direction and zero power behavior
-        frontleft = hardwareMap.get(DcMotor.class, "frontleft");  // Control Hub - Motors - 2 - REV Robotics UltraPlanetary HD Hex Motor
-        frontright = hardwareMap.get(DcMotor.class, "frontright"); // Control Hub - Motors - 1 - REV Robotics UltraPlanetary HD Hex Motor
+        frontleft = hardwareMap.get(DcMotorEx.class, "frontleft");  // Control Hub - Motors - 2 - REV Robotics UltraPlanetary HD Hex Motor
+        frontright = hardwareMap.get(DcMotorEx.class, "frontright"); // Control Hub - Motors - 1 - REV Robotics UltraPlanetary HD Hex Motor
         rearleft = hardwareMap.get(DcMotor.class, "rearleft");  // Control Hub - Motors - 3 - REV Robotics UltraPlanetary HD Hex Motor
         rearright = hardwareMap.get(DcMotor.class, "rearright");  // Control Hub - Motors - 0 - REV Robotics UltraPlanetary HD Hex Motor
 
@@ -493,7 +401,7 @@ public class AutoNew extends LinearOpMode
         // Reset encoders
 
         // Initialize ODOS
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "sensor_otos");
+        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
         odo.setOffsets(0,0,DistanceUnit.METER);
         odo.recalibrateIMU();
         odo.resetPosAndIMU();
@@ -505,6 +413,110 @@ public class AutoNew extends LinearOpMode
         telemetry.update();
 
     }
+
+    public void rotateAroundPoint(double angleDeg,
+                                  double xOffsetMM,
+                                  double yOffsetMM,
+                                  double omegaDegPerSec) {
+
+        double angleRad = Math.toRadians(angleDeg);
+        double omegaRadPerSec = Math.toRadians(Math.abs(omegaDegPerSec));
+
+        // Track how much we’ve actually rotated
+        double startHeading = odo.getPosition().getHeading(AngleUnit.RADIANS);
+        double lastHeading = startHeading;
+        double cumulativeRotation = 0.0;
+
+        ElapsedTime timer = new ElapsedTime();
+        double maxTime = Math.abs(angleDeg / omegaDegPerSec) * 2.0 + 2.0;
+
+        while (opModeIsActive() && timer.seconds() < maxTime) {
+            odo.update();
+
+            double currentHeading = odo.getPosition().getHeading(AngleUnit.RADIANS);
+
+            // Change in heading since last loop
+            double delta = angleWrap(currentHeading - lastHeading);
+            cumulativeRotation += delta;
+            lastHeading = currentHeading;
+
+            double remaining = angleRad - cumulativeRotation;
+
+            // --- Proportional slowdown logic ---
+            double maxOmega = omegaRadPerSec;       // max angular speed
+            double kP = 2.0;                        // proportional gain (tune this)
+            double omega = kP * remaining;          // proportional term
+
+            // Clamp to max speed
+            omega = Math.max(-maxOmega, Math.min(omega, maxOmega));
+
+            // Add a minimum speed (so it doesn’t stall near target)
+            double minSpeed = 0.25 * maxOmega;      // 25% of max
+            if (Math.abs(omega) < minSpeed && Math.abs(remaining) > Math.toRadians(1.0)) {
+                omega = Math.signum(omega) * minSpeed;
+            }
+
+            // --- Translation for orbit (offset is in mm, convert to meters) ---
+            double vx = -omega * (yOffsetMM / 1000.0);
+            double vy =  omega * (xOffsetMM / 1000.0);
+
+            // Scaling
+            double kTrans = 1.0;
+            double kRot   = 0.5;
+            double powerX = vx * kTrans;
+            double powerY = vy * kTrans;
+            double powerR = omega * kRot;
+
+            // --- Mecanum mixing ---
+            double fl = powerY + powerX - powerR;
+            double fr = powerY - powerX + powerR;
+            double rl = powerY - powerX - powerR;
+            double rr = powerY + powerX + powerR;
+
+            // Normalize powers
+            double max = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
+                    Math.max(Math.abs(rl), Math.abs(rr))));
+            fl /= max; fr /= max; rl /= max; rr /= max;
+
+            // Send to motors
+            frontleft.setPower(fl);
+            frontright.setPower(fr);
+            rearleft.setPower(rl);
+            rearright.setPower(rr);
+
+            telemetry.addData("Cumulative (deg)", Math.toDegrees(cumulativeRotation));
+            telemetry.addData("Remaining (deg)", Math.toDegrees(remaining));
+            telemetry.addData("Omega (deg/s)", Math.toDegrees(omega));
+            telemetry.update();
+
+            // Stop if we’ve rotated enough
+            if (Math.abs(remaining) < Math.toRadians(1.0)) {
+                break;
+            }
+        }
+
+        // Stop
+        frontleft.setPower(0);
+        frontright.setPower(0);
+        rearleft.setPower(0);
+        rearright.setPower(0);
+
+        telemetry.addLine("Orbit complete");
+        telemetry.update();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 }
