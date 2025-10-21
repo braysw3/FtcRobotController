@@ -73,7 +73,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class ColorSensor extends LinearOpMode {
 
     /** The colorSensor field will contain a reference to our color sensor hardware object */
-    NormalizedColorSensor colorSensor;
+    NormalizedColorSensor colorSensorLeft;
+    NormalizedColorSensor colorSensorRight;
+
 
     /** The relativeLayout field is used to aid in providing interesting visual feedback
      * in this sample application; you probably *don't* need this when you use a color sensor on your
@@ -128,6 +130,7 @@ public class ColorSensor extends LinearOpMode {
         // contain the value. See http://web.archive.org/web/20190311170843/https://infohost.nmt.edu/tcc/help/pubs/colortheory/web/hsv.html
         // for an explanation of HSV color.
         final float[] hsvValues = new float[3];
+        final float[] hsvValues1 = new float[3];
 
         // xButtonPreviouslyPressed and xButtonCurrentlyPressed keep track of the previous and current
         // state of the X button on the gamepad
@@ -138,16 +141,17 @@ public class ColorSensor extends LinearOpMode {
         // ColorSensor, because NormalizedColorSensor consistently gives values between 0 and 1, while
         // the values you get from ColorSensor are dependent on the specific sensor you're using.
 
-        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
+        colorSensorLeft = hardwareMap.get(NormalizedColorSensor.class, "color");
 
-        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "color");
+        colorSensorRight = hardwareMap.get(NormalizedColorSensor.class, "color1");
+
 
 
         // If possible, turn the light on in the beginning (it might already be on anyway,
         // we just make sure it is if we can).
-        if (colorSensor instanceof SwitchableLight) {
-            ((SwitchableLight)colorSensor).enableLight(true);
-        }
+
+        ((SwitchableLight)colorSensorLeft).enableLight(true);
+        ((SwitchableLight)colorSensorRight).enableLight(true);
 
         // Wait for the start button to be pressed.
         waitForStart();
@@ -171,7 +175,8 @@ public class ColorSensor extends LinearOpMode {
 
             // Tell the sensor our desired gain value (normally you would do this during initialization,
             // not during the loop)
-            colorSensor.setGain(gain);
+            colorSensorLeft.setGain(gain);
+            colorSensorRight.setGain(gain);
 
             // Check the status of the X button on the gamepad
             xButtonCurrentlyPressed = gamepad1.x;
@@ -180,16 +185,18 @@ public class ColorSensor extends LinearOpMode {
             if (xButtonCurrentlyPressed != xButtonPreviouslyPressed) {
                 // If the button is (now) down, then toggle the light
                 if (xButtonCurrentlyPressed) {
-                    if (colorSensor instanceof SwitchableLight) {
-                        SwitchableLight light = (SwitchableLight)colorSensor;
-                        light.enableLight(!light.isLightOn());
-                    }
+                    SwitchableLight light = (SwitchableLight)colorSensorLeft;
+                    SwitchableLight light1 = (SwitchableLight)colorSensorRight;
+
+                    light.enableLight(!light.isLightOn());
+                    light1.enableLight(!light1.isLightOn());
                 }
             }
             xButtonPreviouslyPressed = xButtonCurrentlyPressed;
 
             // Get the normalized colors from the sensor
-            NormalizedRGBA colors = colorSensor.getNormalizedColors();
+            NormalizedRGBA colors = colorSensorLeft.getNormalizedColors();
+            NormalizedRGBA colors1 = colorSensorRight.getNormalizedColors();
 
             /* Use telemetry to display feedback on the driver station. We show the red, green, and blue
              * normalized values from the sensor (in the range of 0 to 1), as well as the equivalent
@@ -198,34 +205,47 @@ public class ColorSensor extends LinearOpMode {
 
             // Update the hsvValues array by passing it to Color.colorToHSV()
             Color.colorToHSV(colors.toColor(), hsvValues);
+            Color.colorToHSV(colors1.toColor(), hsvValues1);
 
-            telemetry.addLine()
-                    .addData("Red", "%.3f", colors.red)
-                    .addData("Green", "%.3f", colors.green)
-                    .addData("Blue", "%.3f", colors.blue);
-            telemetry.addLine()
+            telemetry.addLine("Left")
                     .addData("Hue", "%.3f", hsvValues[0])
                     .addData("Saturation", "%.3f", hsvValues[1])
                     .addData("Value", "%.3f", hsvValues[2]);
+            telemetry.addLine("Right")
+                    .addData("Hue", "%.3f", hsvValues1[0])
+                    .addData("Saturation", "%.3f", hsvValues1[1])
+                    .addData("Value", "%.3f", hsvValues1[2]);
             telemetry.addData("Alpha", "%.3f", colors.alpha);
 
             /* If this color sensor also has a distance sensor, display the measured distance.
              * Note that the reported distance is only useful at very close range, and is impacted by
              * ambient light and surface reflectivity. */
-            if (colorSensor instanceof DistanceSensor) {
-                telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM));
-            }
+            telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) colorSensorLeft).getDistance(DistanceUnit.CM));
+            telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) colorSensorRight).getDistance(DistanceUnit.CM));
 
-
+            //left
             if(hsvValues[0] == 0){
-                telemetry.addLine("None");
+                telemetry.addLine("Left: None");
             }
             if(hsvValues[0] < 200 && hsvValues[0] > 5){
-                telemetry.addLine("Green");
+                telemetry.addLine("Left: Green");
             }
 
             if(hsvValues[0] > 200){
-                telemetry.addLine("Purple");
+                telemetry.addLine("Left: Purple");
+            }
+
+
+            //right
+            if(hsvValues1[0] == 0){
+                telemetry.addLine("Right: None");
+            }
+            if(hsvValues1[0] < 200 && hsvValues[0] > 5){
+                telemetry.addLine("Right: Green");
+            }
+
+            if(hsvValues1[0] > 200){
+                telemetry.addLine("Right: Purple");
             }
 
             telemetry.update();
