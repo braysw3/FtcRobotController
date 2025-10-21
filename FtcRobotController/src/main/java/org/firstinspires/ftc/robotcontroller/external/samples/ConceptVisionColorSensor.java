@@ -114,7 +114,6 @@ public class ConceptVisionColorSensor extends LinearOpMode
          */
         VisionPortal portal = new VisionPortal.Builder()
                 .addProcessor(colorSensor)
-                .setCameraResolution(new Size(320, 240))
                 .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
                 .build();
 
