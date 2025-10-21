@@ -129,8 +129,8 @@ public class ColorSensor extends LinearOpMode {
         // hue, the second element (1) will contain the saturation, and the third element (2) will
         // contain the value. See http://web.archive.org/web/20190311170843/https://infohost.nmt.edu/tcc/help/pubs/colortheory/web/hsv.html
         // for an explanation of HSV color.
-        final float[] hsvValues = new float[3];
-        final float[] hsvValues1 = new float[3];
+        final float[] hsvValuesLeft = new float[3];
+        final float[] hsvValuesRight = new float[3];
 
         // xButtonPreviouslyPressed and xButtonCurrentlyPressed keep track of the previous and current
         // state of the X button on the gamepad
@@ -195,8 +195,8 @@ public class ColorSensor extends LinearOpMode {
             xButtonPreviouslyPressed = xButtonCurrentlyPressed;
 
             // Get the normalized colors from the sensor
-            NormalizedRGBA colors = colorSensorLeft.getNormalizedColors();
-            NormalizedRGBA colors1 = colorSensorRight.getNormalizedColors();
+            NormalizedRGBA colorsleft = colorSensorLeft.getNormalizedColors();
+            NormalizedRGBA colorsright = colorSensorRight.getNormalizedColors();
 
             /* Use telemetry to display feedback on the driver station. We show the red, green, and blue
              * normalized values from the sensor (in the range of 0 to 1), as well as the equivalent
@@ -204,58 +204,49 @@ public class ColorSensor extends LinearOpMode {
              * for an explanation of HSV color. */
 
             // Update the hsvValues array by passing it to Color.colorToHSV()
-            Color.colorToHSV(colors.toColor(), hsvValues);
-            Color.colorToHSV(colors1.toColor(), hsvValues1);
+            Color.colorToHSV(colorsleft.toColor(), hsvValuesLeft);
+            Color.colorToHSV(colorsright.toColor(), hsvValuesRight);
 
-            telemetry.addLine("Left")
-                    .addData("Hue", "%.3f", hsvValues[0])
-                    .addData("Saturation", "%.3f", hsvValues[1])
-                    .addData("Value", "%.3f", hsvValues[2]);
-            telemetry.addLine("Right")
-                    .addData("Hue", "%.3f", hsvValues1[0])
-                    .addData("Saturation", "%.3f", hsvValues1[1])
-                    .addData("Value", "%.3f", hsvValues1[2]);
-            telemetry.addData("Alpha", "%.3f", colors.alpha);
+            telemetry.addData("Hue left", "%.3f", hsvValuesLeft[0]).addData("Distance left", "%.3f", ((DistanceSensor) colorSensorLeft).getDistance(DistanceUnit.CM));
+            telemetry.addData("Hue right", "%.3f", hsvValuesRight[0]).addData("Distance right", "%.3f", ((DistanceSensor) colorSensorRight).getDistance(DistanceUnit.CM));
 
             /* If this color sensor also has a distance sensor, display the measured distance.
              * Note that the reported distance is only useful at very close range, and is impacted by
              * ambient light and surface reflectivity. */
-            telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) colorSensorLeft).getDistance(DistanceUnit.CM));
-            telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) colorSensorRight).getDistance(DistanceUnit.CM));
-
-            //left
-            if(hsvValues[0] == 0){
-                telemetry.addLine("Left: None");
-            }
-            if(hsvValues[0] <= 200){
-                telemetry.addLine("Left: Green");
-            }
-
-            if(hsvValues[0] >= 200){
-                telemetry.addLine("Left: Purple");
-            }
 
 
-            //right
-            if(hsvValues1[0] == 0){
-                telemetry.addLine("Right: None");
-            }
-            if(hsvValues1[0] <= 200){
-                telemetry.addLine("Right: Green");
-            }
+            String leftcolor = returnColor(hsvValuesLeft[0]);
+            String rightcolor = returnColor(hsvValuesRight[0]);
 
-            if(hsvValues1[0] >= 200){
-                telemetry.addLine("Right: Purple");
-            }
+
 
             telemetry.update();
 
             // Change the Robot Controller's background color to match the color detected by the color sensor.
             relativeLayout.post(new Runnable() {
                 public void run() {
-                    relativeLayout.setBackgroundColor(Color.HSVToColor(hsvValues));
+                    relativeLayout.setBackgroundColor(Color.HSVToColor(hsvValuesLeft));
+
                 }
             });
         }
     }
+
+    public String returnColor(float HValue){
+
+        if(HValue == 0){
+            return "none";
+        }
+        if(HValue <= 200){
+            return "green";
+        }
+
+        if(HValue >= 200){
+            return "purple";
+        }
+
+        return "none";
+
+    }
+
 }
