@@ -125,13 +125,12 @@ public class TeleNew extends LinearOpMode {
             //#endregion
 
             //#region Buttons
-            if (gamepad1.aWasPressed()){
-                odo.resetPosAndIMU();
-            }
+
 
 
 
             //#endregion
+
         }
 
     }
