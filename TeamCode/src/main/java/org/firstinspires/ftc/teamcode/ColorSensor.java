@@ -150,8 +150,8 @@ public class ColorSensor extends LinearOpMode {
         // If possible, turn the light on in the beginning (it might already be on anyway,
         // we just make sure it is if we can).
 
-        ((SwitchableLight)colorSensorLeft).enableLight(true);
-        ((SwitchableLight)colorSensorRight).enableLight(true);
+//        ((SwitchableLight)colorSensorLeft).enableLight(true);
+//        ((SwitchableLight)colorSensorRight).enableLight(true);
 
         // Wait for the start button to be pressed.
         waitForStart();
@@ -185,11 +185,11 @@ public class ColorSensor extends LinearOpMode {
             if (xButtonCurrentlyPressed != xButtonPreviouslyPressed) {
                 // If the button is (now) down, then toggle the light
                 if (xButtonCurrentlyPressed) {
-                    SwitchableLight light = (SwitchableLight)colorSensorLeft;
-                    SwitchableLight light1 = (SwitchableLight)colorSensorRight;
-
-                    light.enableLight(!light.isLightOn());
-                    light1.enableLight(!light1.isLightOn());
+//                    SwitchableLight light = (SwitchableLight)colorSensorLeft;
+//                    SwitchableLight light1 = (SwitchableLight)colorSensorRight;
+//
+//                    light.enableLight(!light.isLightOn());
+//                    light1.enableLight(!light1.isLightOn());
                 }
             }
             xButtonPreviouslyPressed = xButtonCurrentlyPressed;

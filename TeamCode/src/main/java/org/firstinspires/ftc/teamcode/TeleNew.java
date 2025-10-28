@@ -9,12 +9,9 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.util.Range;
-import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import java.util.Locale;
 
-@TeleOp(name="New")
+@TeleOp(name="TeleNew")
 public class TeleNew extends LinearOpMode {
     // Hardware map variables
     private DcMotor frontleft = null;
@@ -34,6 +31,14 @@ public class TeleNew extends LinearOpMode {
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.recalibrateIMU();
         odo.resetPosAndIMU();
+
+        frontleft  = hardwareMap.get(DcMotor.class, "frontleft");
+        frontright = hardwareMap.get(DcMotor.class, "frontright");
+        rearleft   = hardwareMap.get(DcMotor.class, "rearleft");
+        rearright  = hardwareMap.get(DcMotor.class, "rearright");
+
+        frontleft.setDirection(DcMotor.Direction.REVERSE);
+        rearleft.setDirection(DcMotor.Direction.REVERSE);
 
         telemetry.addData("Status", "Initialized");
         telemetry.addData("X offset", odo.getXOffset(DistanceUnit.MM));
@@ -98,6 +103,9 @@ public class TeleNew extends LinearOpMode {
             double frontRightPower = rotY - rotX - rx;
             double rearRightPower  = rotY + rotX - rx;
 
+            //O pattern wheels instead of X
+            rotX = -rotX;
+
             // Normalize
             double max = Math.max(
                     1.0,
@@ -116,6 +124,14 @@ public class TeleNew extends LinearOpMode {
             rearright.setPower(rearRightPower * driveSpeed);
             //#endregion
 
+            //#region Buttons
+            if (gamepad1.aWasPressed()){
+                odo.resetPosAndIMU();
+            }
+
+
+
+            //#endregion
         }
 
     }
