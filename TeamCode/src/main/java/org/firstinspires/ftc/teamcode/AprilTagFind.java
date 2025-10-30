@@ -132,9 +132,11 @@ public class AprilTagFind extends LinearOpMode {
     private void telemetryAprilTag() {
 
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        List<AprilTagDetection> currentDetections2 = aprilTag2.getDetections();
         telemetry.addData("# AprilTags Detected", currentDetections.size());
+        telemetry.addData("# AprilTags Detected", currentDetections2.size());
 
-        minXValue=0;
+        minXValue = 0;
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null) {
@@ -147,13 +149,12 @@ public class AprilTagFind extends LinearOpMode {
                 telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
                 //     telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
                 //telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
-               // telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
-               // telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+                // telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
+                // telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
             }
 
-           // sleep(6000);
 
-
+            // sleep(6000);
 
 
 //            switch (detection.id) {
@@ -184,13 +185,13 @@ public class AprilTagFind extends LinearOpMode {
 //                    break;
 //                }
 
-            if (detection.id==24) {
-                BotSide="blue";
-            } else if (detection.id==20) {
-                BotSide="red";
+            if (detection.id == 24) {
+                BotSide = "blue";
+            } else if (detection.id == 20) {
+                BotSide = "red";
             }
 
-            if (BotSide!="" && (detection.id==21 || detection.id==22 || detection.id==23)) {
+            if (BotSide != "" && (detection.id == 21 || detection.id == 22 || detection.id == 23)) {
                 if (minXValue == 0) {
                     minXID = detection.id;
                     minXValue = detection.center.x;
@@ -203,8 +204,38 @@ public class AprilTagFind extends LinearOpMode {
                 }
 
 
+            }
+        }
+        for (AprilTagDetection detection2 : currentDetections2) {
+            if (detection2.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s", detection2.id, detection2.metadata.name));
+                telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection2.ftcPose.x, detection2.ftcPose.y, detection2.ftcPose.z));
+                telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection2.ftcPose.pitch, detection2.ftcPose.roll, detection2.ftcPose.yaw));
+                telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection2.ftcPose.range, detection2.ftcPose.bearing, detection2.ftcPose.elevation));
+            } else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection2.id));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection2.center.x, detection2.center.y));
+            }
+
+            if (detection2.id == 24) {
+                BotSide = "blue";
+            } else if (detection2.id == 20) {
+                BotSide = "red";
+            }
+
+            if (BotSide != "" && (detection2.id == 21 || detection2.id == 22 || detection2.id == 23)) {
+                if (minXValue == 0) {
+                    minXID = detection2.id;
+                    minXValue = detection2.center.x;
+                } else if (BotSide == "red" && minXValue > detection2.center.x) {
+                    minXID = detection2.id;
+                    minXValue = detection2.center.x;
+                } else if (BotSide == "blue" && minXValue < detection2.center.x) {
+                    minXID = detection2.id;
+                    minXValue = detection2.center.x;
+                }
+
 
             }
         }
-    }
-  }
+    }}

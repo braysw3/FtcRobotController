@@ -26,7 +26,7 @@ public class TeleNew extends LinearOpMode {
     public void runOpMode(){
 
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-80, -228, DistanceUnit.MM);
+        odo.setOffsets(-80, -88, DistanceUnit.MM);
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.recalibrateIMU();
@@ -39,6 +39,12 @@ public class TeleNew extends LinearOpMode {
 
         frontleft.setDirection(DcMotor.Direction.REVERSE);
         rearleft.setDirection(DcMotor.Direction.REVERSE);
+
+        frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        rearleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        rearright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
 
         telemetry.addData("Status", "Initialized");
         telemetry.addData("X offset", odo.getXOffset(DistanceUnit.MM));
@@ -97,14 +103,16 @@ public class TeleNew extends LinearOpMode {
             double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
             double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
 
+            //O pattern wheels instead of X
+            rotX = -rotX;
+
             // Compute wheel powers
             double frontLeftPower  = rotY + rotX + rx;
             double rearLeftPower   = rotY - rotX + rx;
             double frontRightPower = rotY - rotX - rx;
             double rearRightPower  = rotY + rotX - rx;
 
-            //O pattern wheels instead of X
-            rotX = -rotX;
+
 
             // Normalize
             double max = Math.max(
@@ -118,10 +126,16 @@ public class TeleNew extends LinearOpMode {
             rearRightPower  /= max;
 
             // Apply power
-            frontleft.setPower(frontLeftPower * driveSpeed);
-            frontright.setPower(frontRightPower * driveSpeed);
-            rearleft.setPower(rearLeftPower * driveSpeed);
-            rearright.setPower(rearRightPower * driveSpeed);
+//            frontleft.setPower(frontLeftPower * driveSpeed);
+//            frontright.setPower(frontRightPower * driveSpeed);
+//            rearleft.setPower(rearLeftPower * driveSpeed);
+//            rearright.setPower(rearRightPower * driveSpeed);
+
+            frontleft.setPower(0);
+            frontright.setPower(0);
+            rearleft.setPower(0);
+            rearright.setPower(0);
+
             //#endregion
 
             //#region Buttons
