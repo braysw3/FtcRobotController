@@ -9,7 +9,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import android.util.Size;
 import java.util.List;
-//yoohoo
+
 @TeleOp(name = "AprilTagNew", group = "Concept")
 public class AprilTagNew extends LinearOpMode {
 
