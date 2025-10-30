@@ -46,6 +46,7 @@ public class AprilTagFind extends LinearOpMode {
     public void runOpMode() {
 
         initAprilTag();
+        waitForStart();
 
         int i = 0;
         while (i<100) {
@@ -66,7 +67,7 @@ public class AprilTagFind extends LinearOpMode {
             sleep(10);
         }
 
-        waitForStart();
+
 
         if (opModeIsActive()) {
             while (opModeIsActive()) {
