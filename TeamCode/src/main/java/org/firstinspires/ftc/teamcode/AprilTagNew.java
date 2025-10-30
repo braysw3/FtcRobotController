@@ -59,6 +59,7 @@ public class AprilTagNew extends LinearOpMode {
                 .setCamera(cam)
                 .setCameraResolution(new Size(640, 480))
                 .addProcessor(aprilTag)
+                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                 .build();
     }
 
