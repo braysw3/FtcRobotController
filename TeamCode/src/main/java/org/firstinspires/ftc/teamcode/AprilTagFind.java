@@ -78,7 +78,7 @@ public class AprilTagFind extends LinearOpMode {
 
         // Save more CPU resources when camera is no longer needed.
         visionPortal.close();
-
+        visionPortal2.close();
     }   // end method runOpMode()
 
     /**
@@ -101,6 +101,7 @@ public class AprilTagFind extends LinearOpMode {
 
         // Set and enable the processor.
         builder.addProcessor(aprilTag);
+        builder.addProcessor(aprilTag2);
 
         // Build the Vision Portal, using the above settings.
 
