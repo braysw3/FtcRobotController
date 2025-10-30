@@ -1,18 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
-import org.firstinspires.ftc.teamcode.Datalogger;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -22,13 +15,12 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import java.util.Locale;
 
 @Autonomous(name="AutoNew")
-//@TeleOp(name="AutoNew")
 public class AutoNew extends LinearOpMode
 {
     //#region Variables and Constants
     // Hardware map variables
-    private DcMotorEx frontleft = null;
-    private DcMotorEx frontright = null;
+    private DcMotor frontleft = null;
+    private DcMotor frontright = null;
     private DcMotor rearleft = null;
     private DcMotor rearright = null;
 
@@ -99,7 +91,7 @@ public class AutoNew extends LinearOpMode
         the tracking point the Y (strafe) odometry pod is. forward of center is a positive number,
         backwards is a negative number.
          */
-        odo.setOffsets(-80, -228, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
+        odo.setOffsets(-80, -88, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
 
         /*
         Set the kind of pods used by your robot. If you're using goBILDA odometry pods, select either
@@ -148,21 +140,10 @@ public class AutoNew extends LinearOpMode
 
             //*****************************************************************/
             long startTime = System.currentTimeMillis();
-            //poop
+
             //test
-//            driveToTarget(0,10,0,1,false);
-//            driveToTarget(10,0,0,1,false);
-//            //rearleft.setPower(1);
+            driveToTarget(10,0,0,2,false);
 
-
-            frontleft.setPower(-0.4); //upper
-            frontright.setPower(-0.8); //lower
-//pppp
-
-
-            //driveToTarget(-100,0,0,5.0,false);
-            //rotateAroundPoint(360, 100, 100, 60);
-            //rotateAroundPoint(-360, 0, 0, 90);
 
             long endTime = System.currentTimeMillis();
             long elapsedTime = endTime - startTime;
@@ -383,8 +364,8 @@ public class AutoNew extends LinearOpMode
                 .build();
 
         // Initialize the hardware variables and set the direction and zero power behavior
-        frontleft = hardwareMap.get(DcMotorEx.class, "frontleft");  // Control Hub - Motors - 2 - REV Robotics UltraPlanetary HD Hex Motor
-        frontright = hardwareMap.get(DcMotorEx.class, "frontright"); // Control Hub - Motors - 1 - REV Robotics UltraPlanetary HD Hex Motor
+        frontleft = hardwareMap.get(DcMotor.class, "frontleft");  // Control Hub - Motors - 2 - REV Robotics UltraPlanetary HD Hex Motor
+        frontright = hardwareMap.get(DcMotor.class, "frontright"); // Control Hub - Motors - 1 - REV Robotics UltraPlanetary HD Hex Motor
         rearleft = hardwareMap.get(DcMotor.class, "rearleft");  // Control Hub - Motors - 3 - REV Robotics UltraPlanetary HD Hex Motor
         rearright = hardwareMap.get(DcMotor.class, "rearright");  // Control Hub - Motors - 0 - REV Robotics UltraPlanetary HD Hex Motor
 

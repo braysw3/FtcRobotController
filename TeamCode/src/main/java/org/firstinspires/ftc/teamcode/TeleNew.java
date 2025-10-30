@@ -4,10 +4,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
-
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import java.util.Locale;
 
@@ -40,10 +37,10 @@ public class TeleNew extends LinearOpMode {
         frontleft.setDirection(DcMotor.Direction.REVERSE);
         rearleft.setDirection(DcMotor.Direction.REVERSE);
 
-        frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        rearleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        rearright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rearleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rearright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 
         telemetry.addData("Status", "Initialized");
@@ -126,15 +123,11 @@ public class TeleNew extends LinearOpMode {
             rearRightPower  /= max;
 
             // Apply power
-//            frontleft.setPower(frontLeftPower * driveSpeed);
-//            frontright.setPower(frontRightPower * driveSpeed);
-//            rearleft.setPower(rearLeftPower * driveSpeed);
-//            rearright.setPower(rearRightPower * driveSpeed);
+            frontleft.setPower(frontLeftPower * driveSpeed);
+            frontright.setPower(frontRightPower * driveSpeed);
+            rearleft.setPower(rearLeftPower * driveSpeed);
+            rearright.setPower(rearRightPower * driveSpeed);
 
-            frontleft.setPower(0);
-            frontright.setPower(0);
-            rearleft.setPower(0);
-            rearright.setPower(0);
 
             //#endregion
 

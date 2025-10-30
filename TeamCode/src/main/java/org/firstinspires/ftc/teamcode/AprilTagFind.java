@@ -135,8 +135,9 @@ public class AprilTagFind extends LinearOpMode {
 
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
         List<AprilTagDetection> currentDetections2 = aprilTag2.getDetections();
-        telemetry.addData("# AprilTags Detected", currentDetections.size());
-        telemetry.addData("# AprilTags Detected", currentDetections2.size());
+        telemetry.addData("Webcam1 Tags", currentDetections.size());
+        telemetry.addData("Webcam2 Tags", currentDetections2.size());
+
 
         minXValue = 0;
         // Step through the list of detections and display info for each one.
