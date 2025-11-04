@@ -73,8 +73,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class ColorSensor extends LinearOpMode {
 
     /** The colorSensor field will contain a reference to our color sensor hardware object */
-    NormalizedColorSensor colorSensorLeft;
-    NormalizedColorSensor colorSensorRight;
+    NormalizedColorSensor colorSensorL;
+    NormalizedColorSensor colorSensorM;
+    NormalizedColorSensor colorSensorR;
 
 
     /** The relativeLayout field is used to aid in providing interesting visual feedback
@@ -130,8 +131,9 @@ public class ColorSensor extends LinearOpMode {
         // hue, the second element (1) will contain the saturation, and the third element (2) will
         // contain the value. See http://web.archive.org/web/20190311170843/https://infohost.nmt.edu/tcc/help/pubs/colortheory/web/hsv.html
         // for an explanation of HSV color.
-        final float[] hsvValuesLeft = new float[3];
-        final float[] hsvValuesRight = new float[3];
+        final float[] hsvValuesL = new float[3];
+        final float[] hsvValuesM = new float[3];
+        final float[] hsvValuesR = new float[3];
 
         // xButtonPreviouslyPressed and xButtonCurrentlyPressed keep track of the previous and current
         // state of the X button on the gamepad
@@ -142,9 +144,9 @@ public class ColorSensor extends LinearOpMode {
         // ColorSensor, because NormalizedColorSensor consistently gives values between 0 and 1, while
         // the values you get from ColorSensor are dependent on the specific sensor you're using.
 
-        colorSensorLeft = hardwareMap.get(NormalizedColorSensor.class, "color");
-
-        colorSensorRight = hardwareMap.get(NormalizedColorSensor.class, "color1");
+        colorSensorL = hardwareMap.get(NormalizedColorSensor.class, "colorL");
+        colorSensorM = hardwareMap.get(NormalizedColorSensor.class, "colorM");
+        colorSensorR = hardwareMap.get(NormalizedColorSensor.class, "colorR");
 
 
 
@@ -176,8 +178,9 @@ public class ColorSensor extends LinearOpMode {
 
             // Tell the sensor our desired gain value (normally you would do this during initialization,
             // not during the loop)
-            colorSensorLeft.setGain(gain);
-            colorSensorRight.setGain(gain);
+            colorSensorL.setGain(gain);
+            colorSensorM.setGain(gain);
+            colorSensorR.setGain(gain);
 
             // Check the status of the X button on the gamepad
             xButtonCurrentlyPressed = gamepad1.x;
@@ -196,8 +199,9 @@ public class ColorSensor extends LinearOpMode {
             xButtonPreviouslyPressed = xButtonCurrentlyPressed;
 
             // Get the normalized colors from the sensor
-            NormalizedRGBA colorsleft = colorSensorLeft.getNormalizedColors();
-            NormalizedRGBA colorsright = colorSensorRight.getNormalizedColors();
+            NormalizedRGBA colorsL = colorSensorL.getNormalizedColors();
+            NormalizedRGBA colorsM = colorSensorM.getNormalizedColors();
+            NormalizedRGBA colorsR = colorSensorR.getNormalizedColors();
 
             /* Use telemetry to display feedback on the driver station. We show the red, green, and blue
              * normalized values from the sensor (in the range of 0 to 1), as well as the equivalent
@@ -205,19 +209,22 @@ public class ColorSensor extends LinearOpMode {
              * for an explanation of HSV color. */
 
             // Update the hsvValues array by passing it to Color.colorToHSV()
-            Color.colorToHSV(colorsleft.toColor(), hsvValuesLeft);
-            Color.colorToHSV(colorsright.toColor(), hsvValuesRight);
+            Color.colorToHSV(colorsL.toColor(), hsvValuesL);
+            Color.colorToHSV(colorsM.toColor(), hsvValuesM);
+            Color.colorToHSV(colorsR.toColor(), hsvValuesR);
 
-            telemetry.addData("Hue left", "%.3f", hsvValuesLeft[0]).addData("Distance left", "%.3f", ((DistanceSensor) colorSensorLeft).getDistance(DistanceUnit.CM));
-            telemetry.addData("Hue right", "%.3f", hsvValuesRight[0]).addData("Distance right", "%.3f", ((DistanceSensor) colorSensorRight).getDistance(DistanceUnit.CM));
+            telemetry.addData("Hue left", "%.3f", hsvValuesL[0]).addData("Distance left", "%.3f", ((DistanceSensor) colorSensorL).getDistance(DistanceUnit.CM));
+            telemetry.addData("Hue left", "%.3f", hsvValuesM[0]).addData("Distance left", "%.3f", ((DistanceSensor) colorSensorM).getDistance(DistanceUnit.CM));
+            telemetry.addData("Hue right", "%.3f", hsvValuesR[0]).addData("Distance right", "%.3f", ((DistanceSensor) colorSensorR).getDistance(DistanceUnit.CM));
 
             /* If this color sensor also has a distance sensor, display the measured distance.
              * Note that the reported distance is only useful at very close range, and is impacted by
              * ambient light and surface reflectivity. */
 
 
-            String leftcolor = returnColor(hsvValuesLeft[0]);
-            String rightcolor = returnColor(hsvValuesRight[0]);
+            String leftcolor = returnColor(hsvValuesL[0]);
+            String middlecolor = returnColor(hsvValuesM[0]);
+            String rightcolor = returnColor(hsvValuesR[0]);
 
 
 
@@ -226,7 +233,7 @@ public class ColorSensor extends LinearOpMode {
             // Change the Robot Controller's background color to match the color detected by the color sensor.
             relativeLayout.post(new Runnable() {
                 public void run() {
-                    relativeLayout.setBackgroundColor(Color.HSVToColor(hsvValuesLeft));
+                    relativeLayout.setBackgroundColor(Color.HSVToColor(hsvValuesL));
 
                 }
             });

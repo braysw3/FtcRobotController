@@ -142,8 +142,10 @@ public class AutoNew extends LinearOpMode
             long startTime = System.currentTimeMillis();
 
             //test
-            driveToTarget(10,0,0,2,false);
+            //driveToTarget(10,0,0,2,false);
 
+            frontleft.setPower(1);
+            frontright.setPower(1);
 
             long endTime = System.currentTimeMillis();
             long elapsedTime = endTime - startTime;
