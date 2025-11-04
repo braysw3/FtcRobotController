@@ -142,10 +142,11 @@ public class AutoNew extends LinearOpMode
             long startTime = System.currentTimeMillis();
 
             //test
-            //driveToTarget(10,0,0,2,false);
 
-            frontleft.setPower(1);
-            frontright.setPower(1);
+            driveToTarget(500,0,0,5,false);
+
+//            frontleft.setPower(1);
+//            frontright.setPower(1);
 
             long endTime = System.currentTimeMillis();
             long elapsedTime = endTime - startTime;
@@ -216,99 +217,121 @@ public class AutoNew extends LinearOpMode
     }
 
     // Function to DRIVE to target position
-    private void driveToTarget(double targetXcm, double targetYcm, double targetHeadingDeg, double timeoutSeconds, boolean FASTER) {
+    // =====================================================
+// PID-BASED DRIVE TO TARGET FUNCTION (X, Y, HEADING)
+// =====================================================
+    // =====================================================
+// PID-BASED DRIVE TO TARGET FUNCTION (X, Y, HEADING)
+// Units: X, Y in millimeters | Heading in degrees
+// =====================================================
+    private void driveToTarget(double targetXmm, double targetYmm, double targetHeadingDeg, double timeoutSeconds, boolean faster) {
         runtime.reset();
 
-        // Convert input from cm → mm for Pinpoint
-        double targetXMM = targetXcm * 10.0;
-        double targetYMM = targetYcm * 10.0;
-
-        // Convert target heading to radians
+        // Convert heading to radians
         double targetHeadingRad = Math.toRadians(targetHeadingDeg);
 
-        // Slowdown parameters
-        double slowdownStartCM = 10.0; // start slowing down inside 10cm
-        double minSpeedFactor = 0.25;  // never go below 25% of base speed
-        double maxTransPower = FASTER ? 0.6 : 0.4; // max translation power
-        double maxRotPower   = 0.5;                 // max rotation power
+        // PID coefficients (starter tuning values)
+        double kP_X = 0.012, kI_X = 0.0, kD_X = 0.002;
+        double kP_Y = 0.012, kI_Y = 0.0, kD_Y = 0.002;
+        double kP_H = 0.04,  kI_H = 0.0, kD_H = 0.008;
+
+        // Integral & derivative terms
+        double integralX = 0, lastErrorX = 0;
+        double integralY = 0, lastErrorY = 0;
+        double integralH = 0, lastErrorH = 0;
+
+        // Power limits
+        double maxTransPower = faster ? 0.7 : 0.5;
+        double maxRotPower   = 0.5;
+
+        double lastTime = getRuntime();
 
         while (opModeIsActive() && runtime.seconds() < timeoutSeconds) {
             odo.update();
+            Pose2D pos = odo.getPosition();
 
-            // Current pose
-            Pose2D pose = odo.getPosition();
-            double currentX = pose.getX(DistanceUnit.MM);
-            double currentY = pose.getY(DistanceUnit.MM);
-            double currentH = pose.getHeading(AngleUnit.RADIANS);
+            // Current position (mm, radians)
+            double currentX = pos.getX(DistanceUnit.MM);
+            double currentY = pos.getY(DistanceUnit.MM);
+            double currentH = pos.getHeading(AngleUnit.RADIANS);
 
-            // Compute errors
-            double errorX = targetXMM - currentX;
-            double errorY = targetYMM - currentY;
+            // Global position error
+            double errorX_global = targetXmm - currentX;
+            double errorY_global = targetYmm - currentY;
             double errorH = angleWrap(targetHeadingRad - currentH);
 
-            // Distance to target
-            double distanceMM = Math.hypot(errorX, errorY);
-
-            // Stop if within tolerances
-            if (distanceMM < 5.0 && Math.abs(Math.toDegrees(errorH)) < 1.0) {
+            // Stop if close enough
+            if (Math.hypot(errorX_global, errorY_global) < 5.0 && Math.abs(Math.toDegrees(errorH)) < 1.0)
                 break;
-            }
 
-            // --- Slow down near target ---
-            double slowFactor = 1.0;
-            if (distanceMM < slowdownStartCM * 10.0) { // convert cm → mm
-                slowFactor = minSpeedFactor + (1.0 - minSpeedFactor) * (distanceMM / (slowdownStartCM * 10.0));
-            }
-
-            // Transform global error into robot-relative frame
+            // --- Convert global error to robot frame ---
             double cosH = Math.cos(currentH);
             double sinH = Math.sin(currentH);
-            double errorXRobot =  cosH * errorX + sinH * errorY;
-            double errorYRobot = -sinH * errorX + cosH * errorY;
+            double errorX_robot =  cosH * errorX_global + sinH * errorY_global;
+            double errorY_robot = -sinH * errorX_global + cosH * errorY_global;
 
-            // Proportional control constants
-            double kPTrans = 0.02 * slowFactor;  // translation
-            double kPRot   = 0.05 * slowFactor;  // rotation
+            // --- PID timing ---
+            double now = getRuntime();
+            double dt = now - lastTime;
+            lastTime = now;
 
-            // Compute robot-relative powers
-            double powerX = Range.clip(errorXRobot * kPTrans, -maxTransPower, maxTransPower);
-            double powerY = Range.clip(errorYRobot * kPTrans, -maxTransPower, maxTransPower);
-            double powerH = Range.clip(errorH * kPRot, -maxRotPower, maxRotPower);
+            // --- PID calculations ---
+            integralX += errorX_robot * dt;
+            integralY += errorY_robot * dt;
+            integralH += errorH * dt;
 
-            // --- Mecanum mixing ---
-            double fl = powerY + powerX - powerH;
-            double fr = powerY - powerX + powerH;
-            double rl = powerY - powerX - powerH;
-            double rr = powerY + powerX + powerH;
+            double derivX = (errorX_robot - lastErrorX) / dt;
+            double derivY = (errorY_robot - lastErrorY) / dt;
+            double derivH = (errorH - lastErrorH) / dt;
 
-            // Normalize powers
-            double maxPower = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
+            lastErrorX = errorX_robot;
+            lastErrorY = errorY_robot;
+            lastErrorH = errorH;
+
+            double outputX = kP_X * errorX_robot + kI_X * integralX + kD_X * derivX;
+            double outputY = kP_Y * errorY_robot + kI_Y * integralY + kD_Y * derivY;
+            double outputH = kP_H * errorH + kI_H * integralH + kD_H * derivH;
+
+            // --- Clamp & normalize ---
+            outputX = Range.clip(outputX, -maxTransPower, maxTransPower);
+            outputY = Range.clip(outputY, -maxTransPower, maxTransPower);
+            outputH = Range.clip(outputH, -maxRotPower, maxRotPower);
+
+            // --- Mecanum drive mix ---
+            double fl = outputY + outputX - outputH;
+            double fr = outputY - outputX + outputH;
+            double rl = outputY - outputX - outputH;
+            double rr = outputY + outputX + outputH;
+
+            double maxMag = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
                     Math.max(Math.abs(rl), Math.abs(rr))));
-            fl /= maxPower; fr /= maxPower; rl /= maxPower; rr /= maxPower;
+            fl /= maxMag; fr /= maxMag; rl /= maxMag; rr /= maxMag;
 
-            // Send to motors
+            // --- Send power to motors ---
             frontleft.setPower(fl);
             frontright.setPower(fr);
             rearleft.setPower(rl);
             rearright.setPower(rr);
 
-            // Telemetry for debugging
-            telemetry.addData("X error (cm)", errorX / 10.0);
-            telemetry.addData("Y error (cm)", errorY / 10.0);
-            telemetry.addData("Heading error (deg)", Math.toDegrees(errorH));
-            telemetry.addData("FL", fl); telemetry.addData("FR", fr);
-            telemetry.addData("RL", rl); telemetry.addData("RR", rr);
+            // --- Telemetry for tuning ---
+            telemetry.addLine("===== Drive to Target =====");
+            telemetry.addData("Target (mm)", "(%.1f, %.1f, %.1f°)", targetXmm, targetYmm, targetHeadingDeg);
+            telemetry.addData("Current (mm)", "(%.1f, %.1f, %.1f°)", currentX, currentY, Math.toDegrees(currentH));
+            telemetry.addData("Error (mm)", "(%.1f, %.1f, %.1f°)", errorX_global, errorY_global, Math.toDegrees(errorH));
+            telemetry.addData("Power", "X: %.2f Y: %.2f H: %.2f", outputX, outputY, outputH);
             telemetry.update();
 
             idle();
         }
 
-        // Stop all motors
+        // Stop motors
         frontleft.setPower(0);
         frontright.setPower(0);
         rearleft.setPower(0);
         rearright.setPower(0);
     }
+
+
 
 
 
