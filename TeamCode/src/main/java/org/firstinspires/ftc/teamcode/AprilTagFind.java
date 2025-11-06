@@ -36,17 +36,14 @@ public class AprilTagFind extends LinearOpMode {
      * The variable to store our instance of the AprilTag processor.
      */
     private AprilTagProcessor aprilTag;
-    private AprilTagProcessor aprilTag2;
     /**
      * The variable to store our instance of the vision portal.
      */
     private VisionPortal visionPortal;
-    private VisionPortal visionPortal2;
     @Override
     public void runOpMode() {
 
         initAprilTag();
-        waitForStart();
 
         int i = 0;
         while (i<100) {
@@ -55,23 +52,14 @@ public class AprilTagFind extends LinearOpMode {
             telemetry.addLine(String.format("min %6.0f", minXValue));
             telemetry.update();
            i = i + 1;
-           sleep(10);
-        }
-        int b = 0;
-        while (b<100) {
-            telemetryAprilTag();
-            telemetry.addLine(String.format("\n min (ID %d)",minXID));
-            telemetry.addLine(String.format("min %6.0f", minXValue));
-            telemetry.update();
-            b = b + 1;
-            sleep(10);
+           sleep(100);
+
         }
 
-
+        waitForStart();
 
         if (opModeIsActive()) {
-            while (opModeIsActive()) {
-
+            {
                 telemetry.update();
 
             }
@@ -79,7 +67,6 @@ public class AprilTagFind extends LinearOpMode {
 
         // Save more CPU resources when camera is no longer needed.
         visionPortal.close();
-        visionPortal2.close();
     }   // end method runOpMode()
 
     /**
@@ -90,32 +77,23 @@ public class AprilTagFind extends LinearOpMode {
         // Create the AprilTag processor.
         aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+                .setSuppressCalibrationWarnings(true)
                 .build();
-
-        aprilTag2 = new AprilTagProcessor.Builder()
-                .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
-                 .build();
 
 
         // Create the vision portal by using a builder.
-        VisionPortal.Builder builder = new VisionPortal.Builder();
-
-        // Set and enable the processor.
-        builder.addProcessor(aprilTag);
-        builder.addProcessor(aprilTag2);
+//        VisionPortal.Builder builder = new VisionPortal.Builder();
+//
+//        // Set and enable the processor.
+//        builder.addProcessor(aprilTag);
 
         // Build the Vision Portal, using the above settings.
 
         visionPortal = new VisionPortal.Builder()
                 .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
                 .setCameraResolution(new Size(1280, 800))
+                .setStreamFormat(VisionPortal.StreamFormat.YUY2)
                 .addProcessor(aprilTag)
-                .build();
-
-        visionPortal2 = new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 2"))
-                .setCameraResolution(new Size(1280, 720))
-                .addProcessor(aprilTag2)
                 .build();
 
 
@@ -134,9 +112,7 @@ public class AprilTagFind extends LinearOpMode {
     private void telemetryAprilTag() {
 
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        List<AprilTagDetection> currentDetections2 = aprilTag2.getDetections();
-        telemetry.addData("Webcam1 Tags", currentDetections.size());
-        telemetry.addData("Webcam2 Tags", currentDetections2.size());
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
 
 
         minXValue = 0;
@@ -207,38 +183,11 @@ public class AprilTagFind extends LinearOpMode {
                 }
 
 
-            }
-        }
-        for (AprilTagDetection detection2 : currentDetections2) {
-            if (detection2.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s", detection2.id, detection2.metadata.name));
-                telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection2.ftcPose.x, detection2.ftcPose.y, detection2.ftcPose.z));
-                telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection2.ftcPose.pitch, detection2.ftcPose.roll, detection2.ftcPose.yaw));
-                telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection2.ftcPose.range, detection2.ftcPose.bearing, detection2.ftcPose.elevation));
-            } else {
-                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection2.id));
-                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection2.center.x, detection2.center.y));
-            }
 
-            if (detection2.id == 24) {
-                BotSide = "blue";
-            } else if (detection2.id == 20) {
-                BotSide = "red";
-            }
-
-            if (BotSide != "" && (detection2.id == 21 || detection2.id == 22 || detection2.id == 23)) {
-                if (minXValue == 0) {
-                    minXID = detection2.id;
-                    minXValue = detection2.center.x;
-                } else if (BotSide == "red" && minXValue > detection2.center.x) {
-                    minXID = detection2.id;
-                    minXValue = detection2.center.x;
-                } else if (BotSide == "blue" && minXValue < detection2.center.x) {
-                    minXID = detection2.id;
-                    minXValue = detection2.center.x;
-                }
 
 
             }
         }
-    }}
+
+    }
+}

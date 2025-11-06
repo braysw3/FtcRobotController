@@ -1,8 +1,4 @@
 package org.firstinspires.ftc.teamcode;
-import android.app.Activity;
-import android.graphics.Color;
-import android.view.View;
-
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -10,9 +6,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
-import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
-import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -66,18 +59,12 @@ public class AutoNew extends LinearOpMode
     private ElapsedTime runtime = new ElapsedTime();
     private double savedTime = 0;
 
+    private Pose2D currentPose;
+    //#endregion
+
     GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
 
     double oldTime = 0;
-
-    private Pose2D currentPose;
-
-    NormalizedColorSensor colorSensorL;
-    NormalizedColorSensor colorSensorM;
-    NormalizedColorSensor colorSensorR;
-    View relativeLayout;
-
-    //#endregion
 
     private double normalizeRadians(double angle) {
         angle = angle % (2 * Math.PI);
@@ -90,6 +77,7 @@ public class AutoNew extends LinearOpMode
         while (angle > Math.PI) angle -= 2 * Math.PI;
         return angle;
     }
+
 
     @Override public void runOpMode()
     {
@@ -142,25 +130,6 @@ public class AutoNew extends LinearOpMode
         telemetry.addData("Heading Scalar", odo.getYawScalar());
         telemetry.update();
 
-        // Get a reference to the RelativeLayout so we can later change the background
-        // color of the Robot Controller app to match the hue detected by the RGB sensor.
-        int relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
-        relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
-
-        try {
-            runSample(); // actually execute the sample
-        } finally {
-            // On the way out, *guarantee* that the background is reasonable. It doesn't actually start off
-            // as pure white, but it's too much work to dig out what actually was used, and this is good
-            // enough to at least make the screen reasonable again.
-            // Set the panel back to the default color
-            relativeLayout.post(new Runnable() {
-                public void run() {
-                    relativeLayout.setBackgroundColor(Color.WHITE);
-                }
-            });
-        }
-
         initializeHardware();
         waitForStart();
 
@@ -173,8 +142,8 @@ public class AutoNew extends LinearOpMode
             long startTime = System.currentTimeMillis();
 
             //test
+            driveToTarget(10,0,0,2,false);
 
-            driveToTarget(500,0,0,5,false);
 
             long endTime = System.currentTimeMillis();
             long elapsedTime = endTime - startTime;
@@ -244,261 +213,101 @@ public class AutoNew extends LinearOpMode
         }
     }
 
-    protected void runSample() {
-        // You can give the sensor a gain value, will be multiplied by the sensor's raw value before the
-        // normalized color values are calculated. Color sensors (especially the REV Color Sensor V3)
-        // can give very low values (depending on the lighting conditions), which only use a small part
-        // of the 0-1 range that is available for the red, green, and blue values. In brighter conditions,
-        // you should use a smaller gain than in dark conditions. If your gain is too high, all of the
-        // colors will report at or near 1, and you won't be able to determine what color you are
-        // actually looking at. For this reason, it's better to err on the side of a lower gain
-        // (but always greater than  or equal to 1).
-        float gain = 2;
-
-        // Once per loop, we will update this hsvValues array. The first element (0) will contain the
-        // hue, the second element (1) will contain the saturation, and the third element (2) will
-        // contain the value. See http://web.archive.org/web/20190311170843/https://infohost.nmt.edu/tcc/help/pubs/colortheory/web/hsv.html
-        // for an explanation of HSV color.
-        final float[] hsvValuesL = new float[3];
-        final float[] hsvValuesM = new float[3];
-        final float[] hsvValuesR = new float[3];
-
-        // xButtonPreviouslyPressed and xButtonCurrentlyPressed keep track of the previous and current
-        // state of the X button on the gamepad
-        boolean xButtonPreviouslyPressed = false;
-        boolean xButtonCurrentlyPressed = false;
-
-        // Get a reference to our sensor object. It's recommended to use NormalizedColorSensor over
-        // ColorSensor, because NormalizedColorSensor consistently gives values between 0 and 1, while
-        // the values you get from ColorSensor are dependent on the specific sensor you're using.
-
-        colorSensorL = hardwareMap.get(NormalizedColorSensor.class, "colorL");
-        colorSensorM = hardwareMap.get(NormalizedColorSensor.class, "colorM");
-        colorSensorR = hardwareMap.get(NormalizedColorSensor.class, "colorR");
-
-
-
-        // If possible, turn the light on in the beginning (it might already be on anyway,
-        // we just make sure it is if we can).
-
-//        ((SwitchableLight)colorSensorLeft).enableLight(true);
-//        ((SwitchableLight)colorSensorRight).enableLight(true);
-
-        // Wait for the start button to be pressed.
-        waitForStart();
-
-        // Loop until we are asked to stop
-        while (opModeIsActive()) {
-            // Explain basic gain information via telemetry
-            telemetry.addLine("Hold the A button on gamepad 1 to increase gain, or B to decrease it.\n");
-            telemetry.addLine("Higher gain values mean that the sensor will report larger numbers for Red, Green, and Blue, and Value\n");
-
-            // Update the gain value if either of the A or B gamepad buttons is being held
-            if (gamepad1.a) {
-                // Only increase the gain by a small amount, since this loop will occur multiple times per second.
-                gain += 0.005;
-            } else if (gamepad1.b && gain > 1) { // A gain of less than 1 will make the values smaller, which is not helpful.
-                gain -= 0.005;
-            }
-
-            // Show the gain value via telemetry
-            telemetry.addData("Gain", gain);
-
-            // Tell the sensor our desired gain value (normally you would do this during initialization,
-            // not during the loop)
-            colorSensorL.setGain(gain);
-            colorSensorM.setGain(gain);
-            colorSensorR.setGain(gain);
-
-            // Check the status of the X button on the gamepad
-            xButtonCurrentlyPressed = gamepad1.x;
-
-            // If the button state is different than what it was, then act
-            if (xButtonCurrentlyPressed != xButtonPreviouslyPressed) {
-                // If the button is (now) down, then toggle the light
-                if (xButtonCurrentlyPressed) {
-//                    SwitchableLight light = (SwitchableLight)colorSensorLeft;
-//                    SwitchableLight light1 = (SwitchableLight)colorSensorRight;
-//
-//                    light.enableLight(!light.isLightOn());
-//                    light1.enableLight(!light1.isLightOn());
-                }
-            }
-            xButtonPreviouslyPressed = xButtonCurrentlyPressed;
-
-            // Get the normalized colors from the sensor
-            NormalizedRGBA colorsL = colorSensorL.getNormalizedColors();
-            NormalizedRGBA colorsM = colorSensorM.getNormalizedColors();
-            NormalizedRGBA colorsR = colorSensorR.getNormalizedColors();
-
-            /* Use telemetry to display feedback on the driver station. We show the red, green, and blue
-             * normalized values from the sensor (in the range of 0 to 1), as well as the equivalent
-             * HSV (hue, saturation and value) values. See http://web.archive.org/web/20190311170843/https://infohost.nmt.edu/tcc/help/pubs/colortheory/web/hsv.html
-             * for an explanation of HSV color. */
-
-            // Update the hsvValues array by passing it to Color.colorToHSV()
-            Color.colorToHSV(colorsL.toColor(), hsvValuesL);
-            Color.colorToHSV(colorsM.toColor(), hsvValuesM);
-            Color.colorToHSV(colorsR.toColor(), hsvValuesR);
-
-            telemetry.addData("Hue left", "%.3f", hsvValuesL[0]).addData("Distance left", "%.3f", ((DistanceSensor) colorSensorL).getDistance(DistanceUnit.CM));
-            telemetry.addData("Hue left", "%.3f", hsvValuesM[0]).addData("Distance left", "%.3f", ((DistanceSensor) colorSensorM).getDistance(DistanceUnit.CM));
-            telemetry.addData("Hue right", "%.3f", hsvValuesR[0]).addData("Distance right", "%.3f", ((DistanceSensor) colorSensorR).getDistance(DistanceUnit.CM));
-
-            /* If this color sensor also has a distance sensor, display the measured distance.
-             * Note that the reported distance is only useful at very close range, and is impacted by
-             * ambient light and surface reflectivity. */
-
-
-            String leftcolor = returnColor(hsvValuesL[0]);
-            String middlecolor = returnColor(hsvValuesM[0]);
-            String rightcolor = returnColor(hsvValuesR[0]);
-
-
-
-            telemetry.update();
-
-            // Change the Robot Controller's background color to match the color detected by the color sensor.
-            relativeLayout.post(new Runnable() {
-                public void run() {
-                    relativeLayout.setBackgroundColor(Color.HSVToColor(hsvValuesL));
-
-                }
-            });
-        }
-    }
-
-    public String returnColor(float HValue){
-
-        if(HValue == 0){
-            return "none";
-        }
-        if(HValue <= 200){
-            return "green";
-        }
-
-        if(HValue >= 200){
-            return "purple";
-        }
-
-        return "none";
-
-    }
-
     // Function to DRIVE to target position
-    // =====================================================
-// PID-BASED DRIVE TO TARGET FUNCTION (X, Y, HEADING)
-// =====================================================
-    // =====================================================
-// PID-BASED DRIVE TO TARGET FUNCTION (X, Y, HEADING)
-// Units: X, Y in millimeters | Heading in degrees
-// =====================================================
-    private void driveToTarget(double targetXmm, double targetYmm, double targetHeadingDeg, double timeoutSeconds, boolean faster) {
+    private void driveToTarget(double targetXcm, double targetYcm, double targetHeadingDeg, double timeoutSeconds, boolean FASTER) {
         runtime.reset();
 
-        // Convert heading to radians
+        // Convert input from cm → mm for Pinpoint
+        double targetXMM = targetXcm * 10.0;
+        double targetYMM = targetYcm * 10.0;
+
+        // Convert target heading to radians
         double targetHeadingRad = Math.toRadians(targetHeadingDeg);
 
-        // PID coefficients (starter tuning values)
-        double kP_X = 0.012, kI_X = 0.0, kD_X = 0.002;
-        double kP_Y = 0.012, kI_Y = 0.0, kD_Y = 0.002;
-        double kP_H = 0.04,  kI_H = 0.0, kD_H = 0.008;
-
-        // Integral & derivative terms
-        double integralX = 0, lastErrorX = 0;
-        double integralY = 0, lastErrorY = 0;
-        double integralH = 0, lastErrorH = 0;
-
-        // Power limits
-        double maxTransPower = faster ? 0.7 : 0.5;
-        double maxRotPower   = 0.5;
-
-        double lastTime = getRuntime();
+        // Slowdown parameters
+        double slowdownStartCM = 10.0; // start slowing down inside 10cm
+        double minSpeedFactor = 0.25;  // never go below 25% of base speed
+        double maxTransPower = FASTER ? 0.6 : 0.4; // max translation power
+        double maxRotPower   = 0.5;                 // max rotation power
 
         while (opModeIsActive() && runtime.seconds() < timeoutSeconds) {
             odo.update();
-            Pose2D pos = odo.getPosition();
 
-            // Current position (mm, radians)
-            double currentX = pos.getX(DistanceUnit.MM);
-            double currentY = pos.getY(DistanceUnit.MM);
-            double currentH = pos.getHeading(AngleUnit.RADIANS);
+            // Current pose
+            Pose2D pose = odo.getPosition();
+            double currentX = pose.getX(DistanceUnit.MM);
+            double currentY = pose.getY(DistanceUnit.MM);
+            double currentH = pose.getHeading(AngleUnit.RADIANS);
 
-            // Global position error
-            double errorX_global = targetXmm - currentX;
-            double errorY_global = targetYmm - currentY;
+            // Compute errors
+            double errorX = targetXMM - currentX;
+            double errorY = targetYMM - currentY;
             double errorH = angleWrap(targetHeadingRad - currentH);
 
-            // Stop if close enough
-            if (Math.hypot(errorX_global, errorY_global) < 5.0 && Math.abs(Math.toDegrees(errorH)) < 1.0)
-                break;
+            // Distance to target
+            double distanceMM = Math.hypot(errorX, errorY);
 
-            // --- Convert global error to robot frame ---
+            // Stop if within tolerances
+            if (distanceMM < 5.0 && Math.abs(Math.toDegrees(errorH)) < 1.0) {
+                break;
+            }
+
+            // --- Slow down near target ---
+            double slowFactor = 1.0;
+            if (distanceMM < slowdownStartCM * 10.0) { // convert cm → mm
+                slowFactor = minSpeedFactor + (1.0 - minSpeedFactor) * (distanceMM / (slowdownStartCM * 10.0));
+            }
+
+            // Transform global error into robot-relative frame
             double cosH = Math.cos(currentH);
             double sinH = Math.sin(currentH);
-            double errorX_robot =  cosH * errorX_global + sinH * errorY_global;
-            double errorY_robot = -sinH * errorX_global + cosH * errorY_global;
+            double errorXRobot =  cosH * errorX + sinH * errorY;
+            double errorYRobot = -sinH * errorX + cosH * errorY;
 
-            // --- PID timing ---
-            double now = getRuntime();
-            double dt = now - lastTime;
-            lastTime = now;
+            // Proportional control constants
+            double kPTrans = 0.02 * slowFactor;  // translation
+            double kPRot   = 0.05 * slowFactor;  // rotation
 
-            // --- PID calculations ---
-            integralX += errorX_robot * dt;
-            integralY += errorY_robot * dt;
-            integralH += errorH * dt;
+            // Compute robot-relative powers
+            double powerX = Range.clip(errorXRobot * kPTrans, -maxTransPower, maxTransPower);
+            double powerY = Range.clip(errorYRobot * kPTrans, -maxTransPower, maxTransPower);
+            double powerH = Range.clip(errorH * kPRot, -maxRotPower, maxRotPower);
 
-            double derivX = (errorX_robot - lastErrorX) / dt;
-            double derivY = (errorY_robot - lastErrorY) / dt;
-            double derivH = (errorH - lastErrorH) / dt;
+            // --- Mecanum mixing ---
+            double fl = powerY + powerX - powerH;
+            double fr = powerY - powerX + powerH;
+            double rl = powerY - powerX - powerH;
+            double rr = powerY + powerX + powerH;
 
-            lastErrorX = errorX_robot;
-            lastErrorY = errorY_robot;
-            lastErrorH = errorH;
-
-            double outputX = kP_X * errorX_robot + kI_X * integralX + kD_X * derivX;
-            double outputY = kP_Y * errorY_robot + kI_Y * integralY + kD_Y * derivY;
-            double outputH = kP_H * errorH + kI_H * integralH + kD_H * derivH;
-
-            // --- Clamp & normalize ---
-            outputX = Range.clip(outputX, -maxTransPower, maxTransPower);
-            outputY = Range.clip(outputY, -maxTransPower, maxTransPower);
-            outputH = Range.clip(outputH, -maxRotPower, maxRotPower);
-
-            // --- Mecanum drive mix ---
-            double fl = outputY + outputX - outputH;
-            double fr = outputY - outputX + outputH;
-            double rl = outputY - outputX - outputH;
-            double rr = outputY + outputX + outputH;
-
-            double maxMag = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
+            // Normalize powers
+            double maxPower = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
                     Math.max(Math.abs(rl), Math.abs(rr))));
-            fl /= maxMag; fr /= maxMag; rl /= maxMag; rr /= maxMag;
+            fl /= maxPower; fr /= maxPower; rl /= maxPower; rr /= maxPower;
 
-            // --- Send power to motors ---
+            // Send to motors
             frontleft.setPower(fl);
             frontright.setPower(fr);
             rearleft.setPower(rl);
             rearright.setPower(rr);
 
-            // --- Telemetry for tuning ---
-            telemetry.addLine("===== Drive to Target =====");
-            telemetry.addData("Target (mm)", "(%.1f, %.1f, %.1f°)", targetXmm, targetYmm, targetHeadingDeg);
-            telemetry.addData("Current (mm)", "(%.1f, %.1f, %.1f°)", currentX, currentY, Math.toDegrees(currentH));
-            telemetry.addData("Error (mm)", "(%.1f, %.1f, %.1f°)", errorX_global, errorY_global, Math.toDegrees(errorH));
-            telemetry.addData("Power", "X: %.2f Y: %.2f H: %.2f", outputX, outputY, outputH);
+            // Telemetry for debugging
+            telemetry.addData("X error (cm)", errorX / 10.0);
+            telemetry.addData("Y error (cm)", errorY / 10.0);
+            telemetry.addData("Heading error (deg)", Math.toDegrees(errorH));
+            telemetry.addData("FL", fl); telemetry.addData("FR", fr);
+            telemetry.addData("RL", rl); telemetry.addData("RR", rr);
             telemetry.update();
 
             idle();
         }
 
-        // Stop motors
+        // Stop all motors
         frontleft.setPower(0);
         frontright.setPower(0);
         rearleft.setPower(0);
         rearright.setPower(0);
     }
+
 
 
     // Fixes the laser odometry sensor angle from -180 to 180 to 0 to 360.

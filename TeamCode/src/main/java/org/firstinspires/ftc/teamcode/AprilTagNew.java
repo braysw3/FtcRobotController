@@ -1,95 +1,78 @@
 package org.firstinspires.ftc.teamcode;
 
-import android.util.Size;
-
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
-
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import android.util.Size;
 import java.util.List;
-
-@TeleOp(name = "AprilTagNew", group = "Vision")
+//
+@TeleOp(name = "AprilTagNew", group = "Concept")
 public class AprilTagNew extends LinearOpMode {
 
-    private VisionPortal portal1;
-    private VisionPortal portal2;
-
-    private AprilTagProcessor tagProcessor1;
-    private AprilTagProcessor tagProcessor2;
+    private AprilTagProcessor aprilTag;
+    private VisionPortal visionPortal;
+    private WebcamName webcam1, webcam2;
 
     @Override
     public void runOpMode() {
+        webcam1 = hardwareMap.get(WebcamName.class, "Webcam 1");  // Logitech
+        webcam2 = hardwareMap.get(WebcamName.class, "Webcam 2");  // ArduCam
 
-        // --- Initialize both cameras with completely independent objects ---
-        tagProcessor1 = new AprilTagProcessor.Builder()
+        aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
                 .build();
 
-        tagProcessor2 = new AprilTagProcessor.Builder()
-                .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
-                .build();
-
-        portal1 = new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
-                .setCameraResolution(new Size(640, 480))
-                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
-                .addProcessor(tagProcessor1)
-                .build();
-
-        portal2 = new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 2"))
-                .setCameraResolution(new Size(640, 480))
-                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
-                .addProcessor(tagProcessor2)
-                .build();
-
-        telemetry.addLine(">>> Cameras initialized. Press START <<<");
+        telemetry.addLine("Ready — press start to begin switching.");
         telemetry.update();
-
         waitForStart();
 
+        // Start with Webcam 1
+        openPortal(webcam1);
+        sleep(500); // give it a moment to initialize
+
         while (opModeIsActive()) {
-            displayCameraData(tagProcessor1, "Camera 1 (ArduCam)");
-            displayCameraData(tagProcessor2, "Camera 2 (Logitech)");
+            showDetections("Webcam 1", aprilTag.getDetections());
             telemetry.update();
-            sleep(50);
+            sleep(1000);
+
+            // Switch to Webcam 2
+            switchCamera(webcam2);
+            sleep(500);
+            showDetections("Webcam 2", aprilTag.getDetections());
+            telemetry.update();
+            sleep(1000);
+
+            // Switch back to Webcam 1
+            switchCamera(webcam1);
+            sleep(500);
         }
 
-        // --- Close both portals on stop ---
-        if (portal1 != null) portal1.close();
-        if (portal2 != null) portal2.close();
+        visionPortal.close();
     }
 
-    private void displayCameraData(AprilTagProcessor processor, String label) {
-        List<AprilTagDetection> detections = processor.getDetections();
+    private void openPortal(WebcamName cam) {
+        visionPortal = new VisionPortal.Builder()
+                .setCamera(cam)
+                .setCameraResolution(new Size(640, 480))
+                .addProcessor(aprilTag)
+                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
+                .build();
+    }
 
-        telemetry.addLine("==============");
-        telemetry.addLine(label);
+    private void switchCamera(WebcamName cam) {
+        visionPortal.close();
+        openPortal(cam);
+    }
+
+    private void showDetections(String label, List<AprilTagDetection> detections) {
+        telemetry.addLine("---- " + label + " ----");
         telemetry.addData("Detections", detections.size());
-
-        if (detections.isEmpty()) {
-            telemetry.addLine("No AprilTags detected.");
-            return;
-        }
-
-        for (AprilTagDetection tag : detections) {
-            if (tag.metadata != null) {
-                telemetry.addLine(String.format("ID %d: %s", tag.id, tag.metadata.name));
-                telemetry.addLine(String.format("XYZ (in): %.1f, %.1f, %.1f",
-                        tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z));
-                telemetry.addLine(String.format("Yaw/Pitch/Roll (deg): %.1f, %.1f, %.1f",
-                        tag.ftcPose.yaw, tag.ftcPose.pitch, tag.ftcPose.roll));
-            } else {
-                telemetry.addLine(String.format("ID %d (Unknown tag)", tag.id));
-                telemetry.addLine(String.format("Center: %.0f, %.0f px",
-                        tag.center.x, tag.center.y));
-            }
+        for (AprilTagDetection d : detections) {
+            telemetry.addLine(String.format("ID %d  (%.1f, %.1f, %.1f)", d.id, d.ftcPose.x, d.ftcPose.y, d.ftcPose.z));
         }
     }
 }
