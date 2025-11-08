@@ -143,7 +143,7 @@ public class AutoNew extends LinearOpMode
         increase when you move the robot forward. And the Y (strafe) pod should increase when
         you move the robot to the left.
          */
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
 
         /*
@@ -174,34 +174,33 @@ public class AutoNew extends LinearOpMode
 
 
 
-        // Save more CPU resources when camera is no longer needed.
-        visionPortal.close();
-        try {
-            runSample(); // actually execute the sample
-        } finally {
-            // On the way out, *guarantee* that the background is reasonable. It doesn't actually start off
-            // as pure white, but it's too much work to dig out what actually was used, and this is good
-            // enough to at least make the screen reasonable again.
-            // Set the panel back to the default color
-            relativeLayout.post(new Runnable() {
-                public void run() {
-                    relativeLayout.setBackgroundColor(Color.WHITE);
-                }
-            });
-        }
 
-        initAprilTag();
+//        try {
+//            runSample(); // actually execute the sample
+//        } finally {
+//            // On the way out, *guarantee* that the background is reasonable. It doesn't actually start off
+//            // as pure white, but it's too much work to dig out what actually was used, and this is good
+//            // enough to at least make the screen reasonable again.
+//            // Set the panel back to the default color
+//            relativeLayout.post(new Runnable() {
+//                public void run() {
+//                    relativeLayout.setBackgroundColor(Color.WHITE);
+//                }
+//            });
+//        }
 
-        int i = 0;
-        while (i<100) {
-            telemetryAprilTag();
-            telemetry.addLine(String.format("\n min (ID %d)",minXID));
-            telemetry.addLine(String.format("min %6.0f", minXValue));
-            telemetry.update();
-            i = i + 1;
-            sleep(100);
+//        initAprilTag();
 
-        }
+//        int i = 0;
+//        while (i<100) {
+//            telemetryAprilTag();
+//            telemetry.addLine(String.format("\n min (ID %d)",minXID));
+//            telemetry.addLine(String.format("min %6.0f", minXValue));
+//            telemetry.update();
+//            i = i + 1;
+//            sleep(100);
+//
+//        }
 
         initializeHardware();
         waitForStart();
@@ -216,7 +215,7 @@ public class AutoNew extends LinearOpMode
             long startTime = System.currentTimeMillis();
 
             //test
-            driveToTarget(10,0,0,2,false);
+            driveToTarget(0,0,90);
 
 
             long endTime = System.currentTimeMillis();
@@ -285,220 +284,254 @@ public class AutoNew extends LinearOpMode
 
 
         }
+        // Save more CPU resources when camera is no longer needed.
+//        visionPortal.close();
     }
 
 
 
-    private void initAprilTag() {
 
-        // Create the AprilTag processor.
-        aprilTag = new AprilTagProcessor.Builder()
-                .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
-                .setSuppressCalibrationWarnings(true)
-                .build();
-
-
-        // Create the vision portal by using a builder.
-//        VisionPortal.Builder builder = new VisionPortal.Builder();
+//    private void initAprilTag() {
 //
-//        // Set and enable the processor.
-//        builder.addProcessor(aprilTag);
-
-        // Build the Vision Portal, using the above settings.
-
-        visionPortal = new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
-                .setCameraResolution(new Size(1280, 800))
-                .setStreamFormat(VisionPortal.StreamFormat.YUY2)
-                .addProcessor(aprilTag)
-                .build();
-
-
-        telemetry.setMsTransmissionInterval(100);  // Speed up telemetry updates, for debugging.
-        telemetry.setDisplayFormat(Telemetry.DisplayFormat.MONOSPACE);
-
-        // Disable or re-enable the aprilTag processor at any time.
-        //visionPortal.setProcessorEnabled(aprilTag, true);
-
-    }   // end method initAprilTag()
-
-    private void telemetryAprilTag() {
-
-        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        telemetry.addData("# AprilTags Detected", currentDetections.size());
-
-
-        minXValue = 0;
-        // Step through the list of detections and display info for each one.
-        for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
-                telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
-                telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
-            } else {
-                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
-                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
-                //     telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                //telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
-                // telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
-                // telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
-            }
-
-
-            // sleep(6000);
-
-
-//            switch (detection.id) {
-//                case 23:
-//                    telemetry.addLine("PPG");
+//        // Create the AprilTag processor.
+//        aprilTag = new AprilTagProcessor.Builder()
+//                .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+//                .setSuppressCalibrationWarnings(true)
+//                .build();
 //
-//                    break;
-//                case 22:
-//                    telemetry.addLine("PGP");
 //
-//                    break;
-//                case 21:
-//                    telemetry.addLine("GPP");
+//        // Create the vision portal by using a builder.
+////        VisionPortal.Builder builder = new VisionPortal.Builder();
+////
+////        // Set and enable the processor.
+////        builder.addProcessor(aprilTag);
 //
-//                    break;
-//                case 24:
-//                    telemetry.addLine("Red");
+//        // Build the Vision Portal, using the above settings.
 //
-//                    telemetry.addLine("you are on blue side");
-//                    break;
-//                case 20:
-//                    telemetry.addLine("Blue");
-//                    //id20Detected = true;
-//                    telemetry.addLine("you are on red side");
-//                    break;
-//                default:
-//                    telemetry.addLine("unknown");
-//                    break;
+//        visionPortal = new VisionPortal.Builder()
+//                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+//                .setCameraResolution(new Size(1280, 800))
+//                .setStreamFormat(VisionPortal.StreamFormat.YUY2)
+//                .addProcessor(aprilTag)
+//                .build();
+//
+//
+//        telemetry.setMsTransmissionInterval(100);  // Speed up telemetry updates, for debugging.
+//        telemetry.setDisplayFormat(Telemetry.DisplayFormat.MONOSPACE);
+//
+//        // Disable or re-enable the aprilTag processor at any time.
+//        //visionPortal.setProcessorEnabled(aprilTag, true);
+//
+//    }   // end method initAprilTag()
+//
+//    private void telemetryAprilTag() {
+//
+//        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+//        telemetry.addData("# AprilTags Detected", currentDetections.size());
+//
+//
+//        minXValue = 0;
+//        // Step through the list of detections and display info for each one.
+//        for (AprilTagDetection detection : currentDetections) {
+//            if (detection.metadata != null) {
+//                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+//                telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
+//                telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
+//                telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+//            } else {
+//                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+//                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+//                //     telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+//                //telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
+//                // telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
+//                // telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+//            }
+//
+//
+//            // sleep(6000);
+//
+//
+////            switch (detection.id) {
+////                case 23:
+////                    telemetry.addLine("PPG");
+////
+////                    break;
+////                case 22:
+////                    telemetry.addLine("PGP");
+////
+////                    break;
+////                case 21:
+////                    telemetry.addLine("GPP");
+////
+////                    break;
+////                case 24:
+////                    telemetry.addLine("Red");
+////
+////                    telemetry.addLine("you are on blue side");
+////                    break;
+////                case 20:
+////                    telemetry.addLine("Blue");
+////                    //id20Detected = true;
+////                    telemetry.addLine("you are on red side");
+////                    break;
+////                default:
+////                    telemetry.addLine("unknown");
+////                    break;
+////                }
+//
+//            if (detection.id == 24) {
+//                BotSide = "blue";
+//            } else if (detection.id == 20) {
+//                BotSide = "red";
+//            }
+//
+//            if (BotSide != "" && (detection.id == 21 || detection.id == 22 || detection.id == 23)) {
+//                if (minXValue == 0) {
+//                    minXID = detection.id;
+//                    minXValue = detection.center.x;
+//                } else if (BotSide == "red" && minXValue > detection.center.x) {
+//                    minXID = detection.id;
+//                    minXValue = detection.center.x;
+//                } else if (BotSide == "blue" && minXValue < detection.center.x) {
+//                    minXID = detection.id;
+//                    minXValue = detection.center.x;
 //                }
-
-            if (detection.id == 24) {
-                BotSide = "blue";
-            } else if (detection.id == 20) {
-                BotSide = "red";
-            }
-
-            if (BotSide != "" && (detection.id == 21 || detection.id == 22 || detection.id == 23)) {
-                if (minXValue == 0) {
-                    minXID = detection.id;
-                    minXValue = detection.center.x;
-                } else if (BotSide == "red" && minXValue > detection.center.x) {
-                    minXID = detection.id;
-                    minXValue = detection.center.x;
-                } else if (BotSide == "blue" && minXValue < detection.center.x) {
-                    minXID = detection.id;
-                    minXValue = detection.center.x;
-                }
-
-
-
-
-
-            }
-        }
-
-    }
+//
+//
+//
+//
+//
+//            }
+//        }
+//
+//    }
 
 
     // Function to DRIVE to target position
-    private void driveToTarget(double targetXcm, double targetYcm, double targetHeadingDeg, double timeoutSeconds, boolean FASTER) {
-        runtime.reset();
+// =====================================================
+// PID-BASED DRIVE TO TARGET FUNCTION (X, Y, HEADING)
+// Units: X, Y in millimeters | Heading in degrees
+// =====================================================
+// ==============================
+// Tunable PID Drive To Target (MM + Heading)
+// ==============================
+public void driveToTarget(double targetXmm, double targetYmm, double targetHeadingDeg) {
+    // --- Tunable PID constants ---
+    double kPTrans = 0.03;
+    double kITrans = 0.0;
+    double kDTrans = 0.002;
 
-        // Convert input from cm → mm for Pinpoint
-        double targetXMM = targetXcm * 10.0;
-        double targetYMM = targetYcm * 10.0;
+    double kPRot = 0.08;
+    double kIRot = 0.0;
+    double kDRot = 0.0;
 
-        // Convert target heading to radians
-        double targetHeadingRad = Math.toRadians(targetHeadingDeg);
+    // --- Control limits ---
+    double maxPower = 0.8;
+    double minPower = 0.1;
+    double maxRotPower = 0.4;
+    double minRotPower = 0.05;
 
-        // Slowdown parameters
-        double slowdownStartCM = 10.0; // start slowing down inside 10cm
-        double minSpeedFactor = 0.25;  // never go below 25% of base speed
-        double maxTransPower = FASTER ? 0.6 : 0.4; // max translation power
-        double maxRotPower   = 0.5;                 // max rotation power
+    double allowableErrorMM = 15.0;
+    double allowableErrorDeg = 2.0;
 
-        while (opModeIsActive() && runtime.seconds() < timeoutSeconds) {
-            odo.update();
+    // --- PID state ---
+    double prevErrorX = 0, prevErrorY = 0, prevErrorH = 0;
+    double integralX = 0, integralY = 0, integralH = 0;
+    double prevTime = getRuntime();
 
-            // Current pose
-            Pose2D pose = odo.getPosition();
-            double currentX = pose.getX(DistanceUnit.MM);
-            double currentY = pose.getY(DistanceUnit.MM);
-            double currentH = pose.getHeading(AngleUnit.RADIANS);
+    while (opModeIsActive()) {
+        odo.update();
+        Pose2D pos = odo.getPosition();
 
-            // Compute errors
-            double errorX = targetXMM - currentX;
-            double errorY = targetYMM - currentY;
-            double errorH = angleWrap(targetHeadingRad - currentH);
+        double currentX = pos.getX(DistanceUnit.MM);
+        double currentY = pos.getY(DistanceUnit.MM);
 
-            // Distance to target
-            double distanceMM = Math.hypot(errorX, errorY);
+        // ✅ FIXED: Invert heading to make clockwise positive
+        double currentHeading = -pos.getHeading(AngleUnit.DEGREES);
 
-            // Stop if within tolerances
-            if (distanceMM < 5.0 && Math.abs(Math.toDegrees(errorH)) < 1.0) {
-                break;
-            }
+        // --- Compute errors ---
+        double errorX = targetXmm - currentX;
+        double errorY = targetYmm - currentY;
+        double errorH = targetHeadingDeg - currentHeading;
 
-            // --- Slow down near target ---
-            double slowFactor = 1.0;
-            if (distanceMM < slowdownStartCM * 10.0) { // convert cm → mm
-                slowFactor = minSpeedFactor + (1.0 - minSpeedFactor) * (distanceMM / (slowdownStartCM * 10.0));
-            }
+        // ✅ Properly wrap heading error (-180° to +180°)
+        errorH = (errorH + 540) % 360 - 180;
 
-            // Transform global error into robot-relative frame
-            double cosH = Math.cos(currentH);
-            double sinH = Math.sin(currentH);
-            double errorXRobot =  cosH * errorX + sinH * errorY;
-            double errorYRobot = -sinH * errorX + cosH * errorY;
+        double distanceMM = Math.hypot(errorX, errorY);
+        if (distanceMM < allowableErrorMM && Math.abs(errorH) < allowableErrorDeg) break;
 
-            // Proportional control constants
-            double kPTrans = 0.02 * slowFactor;  // translation
-            double kPRot   = 0.05 * slowFactor;  // rotation
+        // --- Time delta ---
+        double currentTime = getRuntime();
+        double dt = currentTime - prevTime;
+        prevTime = currentTime;
 
-            // Compute robot-relative powers
-            double powerX = Range.clip(errorXRobot * kPTrans, -maxTransPower, maxTransPower);
-            double powerY = Range.clip(errorYRobot * kPTrans, -maxTransPower, maxTransPower);
-            double powerH = Range.clip(errorH * kPRot, -maxRotPower, maxRotPower);
+        // --- PID Translation ---
+        integralX += errorX * dt;
+        integralY += errorY * dt;
+        double derivativeX = (errorX - prevErrorX) / dt;
+        double derivativeY = (errorY - prevErrorY) / dt;
+        prevErrorX = errorX;
+        prevErrorY = errorY;
 
-            // --- Mecanum mixing ---
-            double fl = powerY + powerX - powerH;
-            double fr = powerY - powerX + powerH;
-            double rl = powerY - powerX - powerH;
-            double rr = powerY + powerX + powerH;
+        double powerX = kPTrans * errorX + kITrans * integralX + kDTrans * derivativeX;
+        double powerY = kPTrans * errorY + kITrans * integralY + kDTrans * derivativeY;
 
-            // Normalize powers
-            double maxPower = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
-                    Math.max(Math.abs(rl), Math.abs(rr))));
-            fl /= maxPower; fr /= maxPower; rl /= maxPower; rr /= maxPower;
+        // --- PID Rotation ---
+        integralH += errorH * dt;
+        double derivativeH = (errorH - prevErrorH) / dt;
+        prevErrorH = errorH;
 
-            // Send to motors
-            frontleft.setPower(fl);
-            frontright.setPower(fr);
-            rearleft.setPower(rl);
-            rearright.setPower(rr);
+        double powerH = kPRot * errorH + kIRot * integralH + kDRot * derivativeH;
 
-            // Telemetry for debugging
-            telemetry.addData("X error (cm)", errorX / 10.0);
-            telemetry.addData("Y error (cm)", errorY / 10.0);
-            telemetry.addData("Heading error (deg)", Math.toDegrees(errorH));
-            telemetry.addData("FL", fl); telemetry.addData("FR", fr);
-            telemetry.addData("RL", rl); telemetry.addData("RR", rr);
-            telemetry.update();
-
-            idle();
+        // ✅ Clamp minimum rotation so it doesn’t give up turning
+        if (Math.abs(powerH) < minRotPower && Math.abs(errorH) > allowableErrorDeg) {
+            powerH = Math.signum(powerH) * minRotPower;
         }
+        powerH = Range.clip(powerH, -maxRotPower, maxRotPower);
 
-        // Stop all motors
-        frontleft.setPower(0);
-        frontright.setPower(0);
-        rearleft.setPower(0);
-        rearright.setPower(0);
+        // --- Field-centric transform ---
+        double botHeadingRad = Math.toRadians(currentHeading);
+        double rotX =  powerX * Math.cos(-botHeadingRad) - powerY * Math.sin(-botHeadingRad);
+        double rotY =  powerX * Math.sin(-botHeadingRad) + powerY * Math.cos(-botHeadingRad);
+
+        // --- Wheel power math ---
+        double frontLeftPower  = rotY + rotX + powerH;
+        double rearLeftPower   = rotY - rotX + powerH;
+        double frontRightPower = rotY - rotX - powerH;
+        double rearRightPower  = rotY + rotX - powerH;
+
+        // Normalize
+        double max = Math.max(1.0, Math.max(Math.abs(frontLeftPower),
+                Math.max(Math.abs(frontRightPower),
+                        Math.max(Math.abs(rearLeftPower), Math.abs(rearRightPower)))));
+        frontLeftPower  = Range.clip(frontLeftPower / max,  -maxPower, maxPower);
+        frontRightPower = Range.clip(frontRightPower / max, -maxPower, maxPower);
+        rearLeftPower   = Range.clip(rearLeftPower / max,   -maxPower, maxPower);
+        rearRightPower  = Range.clip(rearRightPower / max,  -maxPower, maxPower);
+
+        // --- Apply powers ---
+        frontleft.setPower(frontLeftPower);
+        frontright.setPower(frontRightPower);
+        rearleft.setPower(rearLeftPower);
+        rearright.setPower(rearRightPower);
+
+        // --- Debugging output ---
+        telemetry.addData("Target", "(%.1f, %.1f, %.1f°)", targetXmm, targetYmm, targetHeadingDeg);
+        telemetry.addData("Current", "(%.1f, %.1f, %.1f°)", currentX, currentY, currentHeading);
+        telemetry.addData("Error", "X: %.1f  Y: %.1f  H: %.1f°", errorX, errorY, errorH);
+        telemetry.addData("Power", "FL: %.2f FR: %.2f RL: %.2f RR: %.2f", frontLeftPower, frontRightPower, rearLeftPower, rearRightPower);
+        telemetry.update();
     }
+
+    // Stop all motors
+    frontleft.setPower(0);
+    frontright.setPower(0);
+    rearleft.setPower(0);
+    rearright.setPower(0);
+}
+
+
+
 
     protected void runSample() {
         // You can give the sensor a gain value, will be multiplied by the sensor's raw value before the
@@ -700,7 +733,7 @@ public class AutoNew extends LinearOpMode
         rearleft = hardwareMap.get(DcMotor.class, "rearleft");  // Control Hub - Motors - 3 - REV Robotics UltraPlanetary HD Hex Motor
         rearright = hardwareMap.get(DcMotor.class, "rearright");  // Control Hub - Motors - 0 - REV Robotics UltraPlanetary HD Hex Motor
 
-        frontleft.setDirection(DcMotor.Direction.FORWARD);
+        frontleft.setDirection(DcMotor.Direction.REVERSE);
         frontright.setDirection(DcMotor.Direction.REVERSE);
         rearleft.setDirection(DcMotor.Direction.FORWARD);
         rearright.setDirection(DcMotor.Direction.FORWARD);
