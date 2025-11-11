@@ -185,6 +185,12 @@ public class TeleNew extends LinearOpMode {
             } else {
                 right.setPower(0);
             }
+
+            if(gamepad2.a){
+                left.setPower(-1);
+                middle.setPower(-1);
+                right.setPower(-1);
+            }
             //#endregion
 
 

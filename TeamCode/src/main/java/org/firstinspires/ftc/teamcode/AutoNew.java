@@ -17,6 +17,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
@@ -43,6 +44,10 @@ public class AutoNew extends LinearOpMode
     private DcMotor frontright = null;
     private DcMotor rearleft = null;
     private DcMotor rearright = null;
+    private DcMotor intake = null;
+    private CRServo left = null;
+    private CRServo middle = null;
+    private CRServo right = null;
 
 
     // Motor control variables
@@ -175,19 +180,19 @@ public class AutoNew extends LinearOpMode
 
 
 
-//        try {
-//            runSample(); // actually execute the sample
-//        } finally {
-//            // On the way out, *guarantee* that the background is reasonable. It doesn't actually start off
-//            // as pure white, but it's too much work to dig out what actually was used, and this is good
-//            // enough to at least make the screen reasonable again.
-//            // Set the panel back to the default color
-//            relativeLayout.post(new Runnable() {
-//                public void run() {
-//                    relativeLayout.setBackgroundColor(Color.WHITE);
-//                }
-//            });
-//        }
+        try {
+            runSample(); // actually execute the sample
+        } finally {
+            // On the way out, *guarantee* that the background is reasonable. It doesn't actually start off
+            // as pure white, but it's too much work to dig out what actually was used, and this is good
+            // enough to at least make the screen reasonable again.
+            // Set the panel back to the default color
+            relativeLayout.post(new Runnable() {
+                public void run() {
+                    relativeLayout.setBackgroundColor(Color.WHITE);
+                }
+            });
+        }
 
 //        initAprilTag();
 
@@ -205,6 +210,18 @@ public class AutoNew extends LinearOpMode
         initializeHardware();
         waitForStart();
 
+        waitForStart();
+
+        String leftColor = detectColor(colorSensorL);
+        String midColor  = detectColor(colorSensorM);
+        String rightColor = detectColor(colorSensorR);
+
+        telemetry.addData("Left", leftColor);
+        telemetry.addData("Middle", midColor);
+        telemetry.addData("Right", rightColor);
+        telemetry.update();
+        sleep(1000); // pause so you can read telemetry
+
         if (opModeIsActive())
         {
             odo.update();
@@ -215,7 +232,68 @@ public class AutoNew extends LinearOpMode
             long startTime = System.currentTimeMillis();
 
             //test
-            driveToTarget(0,0,90);
+            //driveToTarget(0,0,90);
+
+
+
+
+            while(opModeIsActive()){
+                if(leftColor.equals("green") && (midColor.equals("green") || midColor.equals("purple"))){
+                    if(rightColor.equals("green")){
+                        intake.setPower(-1);
+                        sleep(2000);
+                    } else if (rightColor.equals("purple")){
+                        intake.setPower(1);
+                        right.setPower(1);
+                        sleep(2000);
+                        intake.setPower(1);
+                        right.setPower(1);
+                        sleep(2000);
+                        intake.setPower(1);
+                        left.setPower(1);
+                        sleep(2000);
+                    } else {
+                        intake.setPower(1);
+                    }
+                } else if (leftColor.equals("purple") && (midColor.equals("green") || midColor.equals("purple"))){
+                    if(rightColor.equals("green")){
+                        intake.setPower(1);
+                        left.setPower(1);
+                        sleep(2000);
+                        intake.setPower(1);
+                        left.setPower(1);
+                        sleep(2000);
+                        intake.setPower(1);
+                        right.setPower(1);
+                        sleep(2000);
+                    } else if (rightColor.equals("purple")){
+                        intake.setPower(1);
+                        left.setPower(1);
+                        sleep(2000);
+                        intake.setPower(1);
+                        right.setPower(1);
+                        sleep(2000);
+                        intake.setPower(1);
+                        left.setPower(1);
+                        sleep(2000);
+                    } else {
+                        intake.setPower(1);
+                    }
+                } else {
+                    intake.setPower(1);
+                }
+                sleep(500);
+            }
+
+
+
+
+
+
+
+
+
+
 
 
             long endTime = System.currentTimeMillis();
@@ -423,12 +501,12 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
 
     double kPRot = 0.08;
     double kIRot = 0.0;
-    double kDRot = 0.0;
+    double kDRot = 0.005;
 
     // --- Control limits ---
-    double maxPower = 0.8;
+    double maxPower = 1;
     double minPower = 0.1;
-    double maxRotPower = 0.4;
+    double maxRotPower = 1;
     double minRotPower = 0.05;
 
     double allowableErrorMM = 15.0;
@@ -454,8 +532,10 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         double errorY = targetYmm - currentY;
         double errorH = targetHeadingDeg - currentHeading;
 
+
         // ✅ Properly wrap heading error (-180° to +180°)
         errorH = (errorH + 540) % 360 - 180;
+
 
         double distanceMM = Math.hypot(errorX, errorY);
         if (distanceMM < allowableErrorMM && Math.abs(errorH) < allowableErrorDeg) break;
@@ -489,10 +569,13 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         }
         powerH = Range.clip(powerH, -maxRotPower, maxRotPower);
 
-        // --- Field-centric transform ---
+        // --- FIX: Swap X/Y and preserve CW heading positive ---
         double botHeadingRad = Math.toRadians(currentHeading);
-        double rotX =  powerX * Math.cos(-botHeadingRad) - powerY * Math.sin(-botHeadingRad);
-        double rotY =  powerX * Math.sin(-botHeadingRad) + powerY * Math.cos(-botHeadingRad);
+
+        // swap powerX/powerY positions compared to before
+        double rotX = powerY * Math.cos(botHeadingRad) - powerX * Math.sin(botHeadingRad);
+        double rotY = powerY * Math.sin(botHeadingRad) + powerX * Math.cos(botHeadingRad);
+
 
         // --- Wheel power math ---
         double frontLeftPower  = rotY + rotX + powerH;
@@ -521,6 +604,22 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         telemetry.addData("Error", "X: %.1f  Y: %.1f  H: %.1f°", errorX, errorY, errorH);
         telemetry.addData("Power", "FL: %.2f FR: %.2f RL: %.2f RR: %.2f", frontLeftPower, frontRightPower, rearLeftPower, rearRightPower);
         telemetry.update();
+
+        df1.set(targetXmm);
+        df2.set(targetYmm);
+        df3.set(targetHeadingDeg);
+        df4.set(currentX);
+        df5.set(currentY);
+        df6.set(currentHeading);
+        df7.set(errorX);
+        df8.set(errorY);
+        df9.set(errorH);
+        df16.set(frontLeftPower);
+        df17.set(frontRightPower);
+        df18.set(rearLeftPower);
+        df19.set(rearRightPower);
+
+        datalog.writeLine();
     }
 
     // Stop all motors
@@ -639,9 +738,7 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
              * ambient light and surface reflectivity. */
 
 
-            String leftcolor = returnColor(hsvValuesL[0]);
-            String middlecolor = returnColor(hsvValuesM[0]);
-            String rightcolor = returnColor(hsvValuesR[0]);
+
 
 
 
@@ -657,22 +754,18 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         }
     }
 
-    public String returnColor(float HValue){
+    public String detectColor(NormalizedColorSensor sensor) {
+        final float[] hsvValues = new float[3];
+        NormalizedRGBA colors = sensor.getNormalizedColors();
+        Color.colorToHSV(colors.toColor(), hsvValues);
+        float hue = hsvValues[0];
 
-        if(HValue == 0){
-            return "none";
-        }
-        if(HValue <= 200){
-            return "green";
-        }
-
-        if(HValue >= 200){
-            return "purple";
-        }
-
+        if (hue == 0) return "none";
+        if (hue <= 200) return "green";
+        if (hue >= 200) return "purple";
         return "none";
-
     }
+
 
     // Fixes the laser odometry sensor angle from -180 to 180 to 0 to 360.
     // Sensor goes to +179.9 and a degree more turns into -179.9!, making it impossible to actually hit 180 degrees or even perform a 270 rotation.
@@ -696,34 +789,24 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
     // Initialize hardware and setup datalogger
     private void initializeHardware() {
         // Setup datalogger fields
-        df1 = new Datalogger.GenericField("Target X (m)");           // Target X position in meters
-        df2 = new Datalogger.GenericField("Target Y (m)");           // Target Y position in meters
+        df1 = new Datalogger.GenericField("Target X (mm)");           // Target X position in meters
+        df2 = new Datalogger.GenericField("Target Y (mm)");           // Target Y position in meters
         df3 = new Datalogger.GenericField("Target Heading (deg)");   // Target heading in degrees
-        df4 = new Datalogger.GenericField("Current X (m)");           // Current X position in meters
-        df5 = new Datalogger.GenericField("Current Y (m)");           // Current Y position in meters
+        df4 = new Datalogger.GenericField("Current X (mm)");           // Current X position in meters
+        df5 = new Datalogger.GenericField("Current Y (mm)");           // Current Y position in meters
         df6 = new Datalogger.GenericField("Current Heading (deg)");  // Current heading in degrees
-        df7 = new Datalogger.GenericField("Error X (global) (m)");   // Global X error in meters
-        df8 = new Datalogger.GenericField("Error Y (global) (m)");   // Global Y error in meters
-        df9 = new Datalogger.GenericField("Distance to Target (m)"); // Distance to target in meters
-        df10 = new Datalogger.GenericField("Error Heading (global) (deg)"); // Global heading error in degrees
-        df11 = new Datalogger.GenericField("Error X (local) (m)");   // Local X error in meters
-        df12 = new Datalogger.GenericField("Error Y (local) (m)");   // Local Y error in meters
-        df13 = new Datalogger.GenericField("Power X (local)");       // Local X power
-        df14 = new Datalogger.GenericField("Power Y (local)");       // Local Y power
-        df15 = new Datalogger.GenericField("Power H (local)");       // Local heading power
+        df7 = new Datalogger.GenericField("Error X (mm)");   // Global X error in meters
+        df8 = new Datalogger.GenericField("Error Y (mm)");   // Global Y error in meters
+        df9 = new Datalogger.GenericField("Error H (mm)"); // Distance to target in meters
         df16 = new Datalogger.GenericField("Front Left Power");       // Front left motor power
         df17 = new Datalogger.GenericField("Front Right Power");       // Front right motor power
         df18 = new Datalogger.GenericField("Rear Left Power");       // Rear left motor power
         df19 = new Datalogger.GenericField("Rear Right Power");       // Rear right motor power
-        df20 = new Datalogger.GenericField("Voltage (V)");           // Voltage
-        df21 = new Datalogger.GenericField("Time (s)");               // Time in seconds
-        df22 = new Datalogger.GenericField("inFineAdjustTrans");       // In fine adjust translation
-        df23 = new Datalogger.GenericField("inFineAdjustHead");       // In fine adjust heading
 
         // Create datalogger
         datalog = new Datalogger.Builder()
                 .setFilename("PID_Datalog")  // Name your file
-                .setFields(df1, df2, df3, df4, df5, df6, df7, df8, df9, df10, df11, df12, df13, df14, df15, df16, df17, df18, df19, df20, df21, df22, df23)
+                .setFields(df1, df2, df3, df4, df5, df6, df7, df8, df9, df16, df17, df18, df19)
                 .setAutoTimestamp(Datalogger.AutoTimestamp.DECIMAL_SECONDS)
                 .build();
 
@@ -732,10 +815,14 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         frontright = hardwareMap.get(DcMotor.class, "frontright"); // Control Hub - Motors - 1 - REV Robotics UltraPlanetary HD Hex Motor
         rearleft = hardwareMap.get(DcMotor.class, "rearleft");  // Control Hub - Motors - 3 - REV Robotics UltraPlanetary HD Hex Motor
         rearright = hardwareMap.get(DcMotor.class, "rearright");  // Control Hub - Motors - 0 - REV Robotics UltraPlanetary HD Hex Motor
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        left = hardwareMap.get(CRServo.class, "left");
+        middle = hardwareMap.get(CRServo.class, "middle");
+        right = hardwareMap.get(CRServo.class, "right");
 
         frontleft.setDirection(DcMotor.Direction.REVERSE);
-        frontright.setDirection(DcMotor.Direction.REVERSE);
-        rearleft.setDirection(DcMotor.Direction.FORWARD);
+        frontright.setDirection(DcMotor.Direction.FORWARD);
+        rearleft.setDirection(DcMotor.Direction.REVERSE);
         rearright.setDirection(DcMotor.Direction.FORWARD);
 
         frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
