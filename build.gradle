@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0' // match the version used by FTC SDK
+        classpath 'com.android.tools.build:gradle:8.13.1' // match the version used by FTC SDK
     }
 }
 
