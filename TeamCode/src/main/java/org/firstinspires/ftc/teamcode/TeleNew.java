@@ -11,6 +11,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -29,6 +31,8 @@ public class TeleNew extends LinearOpMode {
     private CRServo left = null;
     private CRServo middle = null;
     private CRServo right = null;
+    private DcMotor left_shoot;
+    private DcMotor right_shoot;
 
     NormalizedColorSensor colorSensorL;
     NormalizedColorSensor colorSensorM;
@@ -55,15 +59,21 @@ public class TeleNew extends LinearOpMode {
         left = hardwareMap.get(CRServo.class, "left");
         middle = hardwareMap.get(CRServo.class, "middle");
         right = hardwareMap.get(CRServo.class, "right");
+        left_shoot = hardwareMap.get(DcMotor.class, "left_shoot");
+        right_shoot = hardwareMap.get(DcMotor.class, "right_shoot");
 
         frontleft.setDirection(DcMotor.Direction.REVERSE);
         rearleft.setDirection(DcMotor.Direction.REVERSE);
+        left_shoot.setDirection(DcMotor.Direction.FORWARD);
+        right_shoot.setDirection(DcMotor.Direction.REVERSE);
+
 
         frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rearleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rearright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
+        left_shoot.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        right_shoot.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         telemetry.addData("Status", "Initialized");
         telemetry.addData("X offset", odo.getXOffset(DistanceUnit.MM));
@@ -160,6 +170,14 @@ public class TeleNew extends LinearOpMode {
                 lineUp();
             }
 
+            if(gamepad1.right_trigger != 0){
+                left_shoot.setPower(1);
+                right_shoot.setPower(1);
+            } else {
+                left_shoot.setPower(0);
+                right_shoot.setPower(0);
+            }
+            
             if(gamepad2.left_bumper){
                 intake.setPower(-1);
             } else if (gamepad2.right_bumper){

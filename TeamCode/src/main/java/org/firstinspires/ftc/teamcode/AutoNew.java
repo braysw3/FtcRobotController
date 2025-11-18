@@ -230,7 +230,7 @@ public class AutoNew extends LinearOpMode
             long startTime = System.currentTimeMillis();
 
             //test
-            driveToTarget(1689.547,0,0);
+            driveToTarget(1679,0,0);
 
 
 
@@ -681,14 +681,6 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
             telemetry.addLine("Hold the A button on gamepad 1 to increase gain, or B to decrease it.\n");
             telemetry.addLine("Higher gain values mean that the sensor will report larger numbers for Red, Green, and Blue, and Value\n");
 
-            // Update the gain value if either of the A or B gamepad buttons is being held
-            if (gamepad1.a) {
-                // Only increase the gain by a small amount, since this loop will occur multiple times per second.
-                gain += 0.005;
-            } else if (gamepad1.b && gain > 1) { // A gain of less than 1 will make the values smaller, which is not helpful.
-                gain -= 0.005;
-            }
-
             // Show the gain value via telemetry
             telemetry.addData("Gain", gain);
 
@@ -697,22 +689,6 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
             colorSensorL.setGain(gain);
             colorSensorM.setGain(gain);
             colorSensorR.setGain(gain);
-
-            // Check the status of the X button on the gamepad
-            xButtonCurrentlyPressed = gamepad1.x;
-
-            // If the button state is different than what it was, then act
-            if (xButtonCurrentlyPressed != xButtonPreviouslyPressed) {
-                // If the button is (now) down, then toggle the light
-                if (xButtonCurrentlyPressed) {
-//                    SwitchableLight light = (SwitchableLight)colorSensorLeft;
-//                    SwitchableLight light1 = (SwitchableLight)colorSensorRight;
-//
-//                    light.enableLight(!light.isLightOn());
-//                    light1.enableLight(!light1.isLightOn());
-                }
-            }
-            xButtonPreviouslyPressed = xButtonCurrentlyPressed;
 
             // Get the normalized colors from the sensor
             NormalizedRGBA colorsL = colorSensorL.getNormalizedColors();
