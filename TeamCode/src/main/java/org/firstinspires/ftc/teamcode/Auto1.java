@@ -21,14 +21,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-@Autonomous(name="AutoNew")
+@Autonomous(name="Auto1")
 public class Auto1 extends LinearOpMode
 {
-    String BotSide = "";
-    double minXValue=0;
-    int minXID=0;
-    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
-
     //#region Variables and Constants
     // Hardware map variables
     private DcMotor frontleft = null;
@@ -40,31 +35,14 @@ public class Auto1 extends LinearOpMode
     private CRServo middle = null;
     private CRServo right = null;
 
-    private VoltageSensor voltageSensor;
-
     // Logger setup
     private Datalogger datalog;
-    private Datalogger.GenericField df1, df2, df3, df4, df5, df6, df7, df8, df9, df10, df11, df12, df13, df14, df15, df16, df17, df18, df19, df20, df21, df22, df23;
-
-    private ElapsedTime runtime = new ElapsedTime();
-    private double savedTime = 0;
-
-    private Pose2D currentPose;
+    private Datalogger.GenericField df1, df2, df3, df4, df5, df6, df7, df8, df9, df16, df17, df18, df19;
 
 
     //#endregion
 
     GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
-
-    double oldTime = 0;
-
-    private double angleWrap(double angle) {
-        while (angle <= -Math.PI) angle += 2 * Math.PI;
-        while (angle > Math.PI) angle -= 2 * Math.PI;
-        return angle;
-    }
-
-
 
     @Override public void runOpMode()
     {
@@ -84,14 +62,10 @@ public class Auto1 extends LinearOpMode
             odo.update();
             telemetry.update();
 
-
             //*****************************************************************/
-            long startTime = System.currentTimeMillis();
 
-            //test
             driveToTarget(1679,0,0);
-            long endTime = System.currentTimeMillis();
-            long elapsedTime = endTime - startTime;
+
         }
 
     }
@@ -297,9 +271,6 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         odo.setOffsets(0,0,DistanceUnit.METER);
         odo.recalibrateIMU();
         odo.resetPosAndIMU();
-
-        // Initialize voltage sensor
-        voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
         telemetry.addData("AUTO v9 CLIP - Ready team!", "Press Play Button");
         telemetry.update();
