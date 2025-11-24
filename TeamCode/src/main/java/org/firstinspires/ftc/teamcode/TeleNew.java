@@ -31,8 +31,8 @@ public class TeleNew extends LinearOpMode {
     private CRServo left = null;
     private CRServo middle = null;
     private CRServo right = null;
-    private DcMotor left_shoot;
-    private DcMotor right_shoot;
+    private DcMotorEx left_shoot;
+    private DcMotorEx right_shoot;
 
     NormalizedColorSensor colorSensorL;
     NormalizedColorSensor colorSensorM;
@@ -40,16 +40,22 @@ public class TeleNew extends LinearOpMode {
 
     GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
 
+    private Datalogger datalog;
+    private Datalogger.GenericField df1, df2;
+
     double oldTime = 0;
 
     public void runOpMode(){
 
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-80, -140, DistanceUnit.MM);
+        odo.setOffsets(-83, -133, DistanceUnit.MM);
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
-        odo.recalibrateIMU();
         odo.resetPosAndIMU();
+        while (odo.getDeviceStatus() != GoBildaPinpointDriver.DeviceStatus.READY) {
+            sleep(1);
+            odo.resetPosAndIMU();
+        }
 
         frontleft  = hardwareMap.get(DcMotor.class, "frontleft");
         frontright = hardwareMap.get(DcMotor.class, "frontright");
@@ -59,14 +65,13 @@ public class TeleNew extends LinearOpMode {
         left = hardwareMap.get(CRServo.class, "left");
         middle = hardwareMap.get(CRServo.class, "middle");
         right = hardwareMap.get(CRServo.class, "right");
-        left_shoot = hardwareMap.get(DcMotor.class, "left_shoot");
-        right_shoot = hardwareMap.get(DcMotor.class, "right_shoot");
+        left_shoot = hardwareMap.get(DcMotorEx.class, "left_shoot");
+        right_shoot = hardwareMap.get(DcMotorEx.class, "right_shoot");
 
         frontleft.setDirection(DcMotor.Direction.REVERSE);
         rearleft.setDirection(DcMotor.Direction.REVERSE);
-        left_shoot.setDirection(DcMotor.Direction.FORWARD);
-        right_shoot.setDirection(DcMotor.Direction.REVERSE);
-
+        left_shoot.setDirection(DcMotor.Direction.REVERSE);
+        right_shoot.setDirection(DcMotor.Direction.FORWARD);
 
         frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -75,17 +80,27 @@ public class TeleNew extends LinearOpMode {
         left_shoot.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         right_shoot.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
+        df1 = new Datalogger.GenericField("Velocity left");
+        df2 = new Datalogger.GenericField("Velocity right");
+
+        // Create datalogger
+        datalog = new Datalogger.Builder()
+                .setFilename("PID_Datalog_Tele")  // Name your file
+                .setFields(df1, df2)
+                .setAutoTimestamp(Datalogger.AutoTimestamp.DECIMAL_SECONDS)
+                .build();
+
         telemetry.addData("Status", "Initialized");
         telemetry.addData("X offset", odo.getXOffset(DistanceUnit.MM));
         telemetry.addData("Y offset", odo.getYOffset(DistanceUnit.MM));
         telemetry.addData("Device Version Number:", odo.getDeviceVersion());
         telemetry.addData("Heading Scalar", odo.getYawScalar());
+        telemetry.addData("Odo Status", odo.getDeviceStatus());
         telemetry.update();
 
 
         // Wait for the game to start (driver presses START)
         waitForStart();
-        resetRuntime();
 
 
         // run until the end of the match (driver presses STOP)
@@ -115,6 +130,14 @@ public class TeleNew extends LinearOpMode {
             telemetry.addData("Status", odo.getDeviceStatus());
             telemetry.addData("Pinpoint Frequency", odo.getFrequency()); //prints/gets the current refresh rate of the Pinpoint
             telemetry.addData("REV Hub Frequency: ", frequency); //prints the control system refresh rate
+            telemetry.addData("Launch velocity left", left_shoot.getVelocity());
+            telemetry.addData("Launch velocity right", right_shoot.getVelocity());
+
+            df1.set(left_shoot.getVelocity());
+            df2.set(right_shoot.getVelocity());
+
+            datalog.writeLine();
+
             telemetry.update();
             //#endregion
 
@@ -171,8 +194,8 @@ public class TeleNew extends LinearOpMode {
             }
 
             if(gamepad1.right_trigger != 0){
-                left_shoot.setPower(1);
-                right_shoot.setPower(1);
+                left_shoot.setVelocity(3000);
+                right_shoot.setVelocity(3000);
             } else {
                 left_shoot.setPower(0);
                 right_shoot.setPower(0);

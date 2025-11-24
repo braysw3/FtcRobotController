@@ -47,11 +47,10 @@ public class Auto1 extends LinearOpMode
     @Override public void runOpMode()
     {
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-80, -140, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
+        odo.setOffsets(-83, -133, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
-        odo.recalibrateIMU();
 
 
         initializeHardware();
@@ -269,7 +268,6 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         // Initialize ODOS
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
         odo.setOffsets(0,0,DistanceUnit.METER);
-        odo.recalibrateIMU();
         odo.resetPosAndIMU();
 
         telemetry.addData("AUTO v9 CLIP - Ready team!", "Press Play Button");
