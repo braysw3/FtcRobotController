@@ -28,11 +28,14 @@ public class TeleNew extends LinearOpMode {
     private DcMotor rearleft = null;
     private DcMotor rearright = null;
     private DcMotor intake = null;
-    private CRServo left = null;
-    private CRServo middle = null;
-    private CRServo right = null;
+    private DcMotor intakeTop = null;
+    private Servo left = null;
+    private Servo middle = null;
+    private Servo right = null;
     private DcMotorEx left_shoot;
     private DcMotorEx right_shoot;
+    private int myPos;
+
 
     NormalizedColorSensor colorSensorL;
     NormalizedColorSensor colorSensorM;
@@ -48,23 +51,20 @@ public class TeleNew extends LinearOpMode {
     public void runOpMode(){
 
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-83, -133, DistanceUnit.MM);
+        odo.setOffsets(-82, 113, DistanceUnit.MM);
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
-        while (odo.getDeviceStatus() != GoBildaPinpointDriver.DeviceStatus.READY) {
-            sleep(1);
-            odo.resetPosAndIMU();
-        }
 
         frontleft  = hardwareMap.get(DcMotor.class, "frontleft");
         frontright = hardwareMap.get(DcMotor.class, "frontright");
         rearleft   = hardwareMap.get(DcMotor.class, "rearleft");
         rearright  = hardwareMap.get(DcMotor.class, "rearright");
         intake = hardwareMap.get(DcMotor.class, "intake");
-        left = hardwareMap.get(CRServo.class, "left");
-        middle = hardwareMap.get(CRServo.class, "middle");
-        right = hardwareMap.get(CRServo.class, "right");
+        intakeTop = hardwareMap.get(DcMotor.class, "intakeTop");
+        left = hardwareMap.get(Servo.class, "left");
+        middle = hardwareMap.get(Servo.class, "middle");
+        right = hardwareMap.get(Servo.class, "right");
         left_shoot = hardwareMap.get(DcMotorEx.class, "left_shoot");
         right_shoot = hardwareMap.get(DcMotorEx.class, "right_shoot");
 
@@ -123,8 +123,13 @@ public class TeleNew extends LinearOpMode {
             oldTime = newTime;
             Pose2D pos = odo.getPosition();
 
+
             String data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
             telemetry.addData("Position", data);
+
+            data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", odo.getPosX(DistanceUnit.MM), odo.getPosY(DistanceUnit.MM), odo.getHeading(AngleUnit.DEGREES));
+            telemetry.addData("ODO Position", data);
+
             String velocity = String.format(Locale.US,"{XVel: %.3f, YVel: %.3f, HVel: %.3f}", odo.getVelX(DistanceUnit.MM), odo.getVelY(DistanceUnit.MM), odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES));
             telemetry.addData("Velocity", velocity);
             telemetry.addData("Status", odo.getDeviceStatus());
@@ -132,6 +137,7 @@ public class TeleNew extends LinearOpMode {
             telemetry.addData("REV Hub Frequency: ", frequency); //prints the control system refresh rate
             telemetry.addData("Launch velocity left", left_shoot.getVelocity());
             telemetry.addData("Launch velocity right", right_shoot.getVelocity());
+            telemetry.addData("myPos: ", myPos);
 
             df1.set(left_shoot.getVelocity());
             df2.set(right_shoot.getVelocity());
@@ -189,13 +195,16 @@ public class TeleNew extends LinearOpMode {
 
             //#region Buttons
 
-            if(gamepad1.x){
-                lineUp();
+            if(gamepad2.left_trigger != 0){
+                //lineUp();
+                intakeTop.setPower(-1);
+            } else {
+                intakeTop.setPower(0);
             }
 
             if(gamepad1.right_trigger != 0){
-                left_shoot.setVelocity(3000);
-                right_shoot.setVelocity(3000);
+                left_shoot.setVelocity(-3000);
+                right_shoot.setVelocity(-3000);
             } else {
                 left_shoot.setPower(0);
                 right_shoot.setPower(0);
@@ -209,29 +218,48 @@ public class TeleNew extends LinearOpMode {
                 intake.setPower(0);
             }
 
-            if(gamepad2.x){
-                left.setPower(1);
+            if(gamepad2.right_trigger != 0){
+                intakeTop.setPower(1);
             } else {
-                left.setPower(0);
+                intakeTop.setPower(0);
+            }
+            //0.43 start left
+            //0.76 kick left
+
+            //0.31 start middle
+            //0.68 kick middle
+
+            //0.07 start right
+            //0.37 kick right
+
+            if(gamepad2.x){
+                left.setPosition(0.76);
+            } else {
+                left.setPosition(0.43);
             }
 
             if(gamepad2.y){
-                middle.setPower(1);
+                middle.setPosition(0.68);
             } else {
-                middle.setPower(0);
+                middle.setPosition(0.31);
             }
 
             if(gamepad2.b){
-                right.setPower(1);
+                right.setPosition(0.37);
             } else {
-                right.setPower(0);
+                right.setPosition(0.07);
             }
 
             if(gamepad2.a){
-                left.setPower(-1);
-                middle.setPower(-1);
-                right.setPower(-1);
+                left.setPosition(0.76);
+                middle.setPosition(0.68);
+                right.setPosition(0.37);
+            } else {
+                left.setPosition(0.43);
+                middle.setPosition(0.31);
+                right.setPosition(0.07);
             }
+
             //#endregion
 
 

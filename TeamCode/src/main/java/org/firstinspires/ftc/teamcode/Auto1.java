@@ -63,7 +63,12 @@ public class Auto1 extends LinearOpMode
 
             //*****************************************************************/
 
-            driveToTarget(1679,0,0);
+            driveToTarget(1688.7,-58.986,0);
+            turnToHeading(90,1);
+            driveToTarget(2218.320,-1239.459,0);
+            driveToTarget(3154.291,-490.451,0);
+
+
 
         }
 
@@ -82,13 +87,13 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
 
 
     // --- Tunable PID constants ---
-    double kPTrans = 0.05;
+    double kPTrans = 0.04;
     double kITrans = 0.0;
-    double kDTrans = 0.0;
+    double kDTrans = 0.005;
 
-    double kPRot = 0.08;
+    double kPRot = 0.005;
     double kIRot = 0.0;
-    double kDRot = 0.005;
+    double kDRot = 0.0;
 
     // --- Control limits ---
     double maxPower = 1;
@@ -216,6 +221,107 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
     rearright.setPower(0);
 }
 
+    public void turnToHeading(double targetHeadingDeg, double timeoutSeconds) {
+
+        double kPRot = 0.04;
+        double kIRot = 0.0;
+        double kDRot = 0.005;
+
+        double maxRotPower = 1.0;
+        double baseMinRotPower = 0.08;
+        double allowableErrorDeg = 3.0;
+
+        double prevErrorH = 0;
+        double integralH = 0;
+        double prevTime = getRuntime();
+
+        double stableTimeRequired = 0.20;
+        double timeInsideBand = 0.0;
+
+        // --- timeout setup ---
+        double startTime = getRuntime();
+
+        while (opModeIsActive()) {
+
+            // --- timeout check ---
+            double elapsed = getRuntime() - startTime;
+            if (elapsed > timeoutSeconds) {
+                telemetry.addData("turnToHeading", "TIMEOUT after %.2f s", elapsed);
+                telemetry.update();
+                break;
+            }
+
+            odo.update();
+            Pose2D pos = odo.getPosition();
+
+            double currentHeading = -pos.getHeading(AngleUnit.DEGREES);
+
+            double errorH = targetHeadingDeg - currentHeading;
+            errorH = (errorH + 540) % 360 - 180;   // wrap to -180..180
+
+            double currentTime = getRuntime();
+            double dt = currentTime - prevTime;
+            if (dt <= 0) dt = 0.01;
+            prevTime = currentTime;
+
+            // stable-band tracking
+            if (Math.abs(errorH) < allowableErrorDeg) {
+                timeInsideBand += dt;
+            } else {
+                timeInsideBand = 0.0;
+            }
+
+            if (timeInsideBand >= stableTimeRequired) {
+                telemetry.addData("turnToHeading", "DONE (within band)");
+                telemetry.update();
+                break;
+            }
+
+            // PID math
+            integralH += errorH * dt;
+            double derivativeH = (errorH - prevErrorH) / dt;
+            prevErrorH = errorH;
+
+            double powerH = kPRot * errorH + kIRot * integralH + kDRot * derivativeH;
+
+            // adaptive min power
+            double minRotPower;
+            if (Math.abs(errorH) > 15) {
+                minRotPower = baseMinRotPower;
+            } else {
+                minRotPower = 0.03;
+            }
+
+            if (Math.abs(powerH) < minRotPower && Math.abs(errorH) > allowableErrorDeg) {
+                powerH = Math.signum(powerH) * minRotPower;
+            }
+
+            powerH = Range.clip(powerH, -maxRotPower, maxRotPower);
+
+            // pure in-place turn
+            frontleft.setPower(powerH);
+            rearleft.setPower(powerH);
+            frontright.setPower(-powerH);
+            rearright.setPower(-powerH);
+
+            telemetry.addData("Target H", targetHeadingDeg);
+            telemetry.addData("Current H", currentHeading);
+            telemetry.addData("Error H", errorH);
+            telemetry.addData("PowerH", powerH);
+            telemetry.addData("Stable Time", timeInsideBand);
+            telemetry.addData("Elapsed", elapsed);
+            telemetry.update();
+        }
+
+        // Stop all motors
+        frontleft.setPower(0);
+        frontright.setPower(0);
+        rearleft.setPower(0);
+        rearright.setPower(0);
+    }
+
+
+
 
 
 
@@ -262,13 +368,6 @@ public void driveToTarget(double targetXmm, double targetYmm, double targetHeadi
         frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rearleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rearright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        // Reset encoders
-
-        // Initialize ODOS
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
-        odo.setOffsets(0,0,DistanceUnit.METER);
-        odo.resetPosAndIMU();
 
         telemetry.addData("AUTO v9 CLIP - Ready team!", "Press Play Button");
         telemetry.update();
